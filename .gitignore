@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+*.local
+.DS_Store
+.vite/
+
+# Pin-audit renders — regenerate with `node scripts/dev/pin-audit.mjs --bands`
+data/pin-audit.png
+data/pin-band*.png

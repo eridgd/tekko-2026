@@ -1,0 +1,31 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Hash routing means the SPA never requests a deep path from the server, but
+# this keeps direct hits on any path working anyway.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Fingerprinted build assets are safe to cache forever.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Data and the service worker must revalidate so a mid-con refresh actually
+# reaches a phone that already has the app installed.
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

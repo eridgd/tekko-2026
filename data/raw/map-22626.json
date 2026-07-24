@@ -1,0 +1,592 @@
+{
+ "map_info": {
+  "id": "22626",
+  "event_id": "21858",
+  "acct_id": "369344",
+  "map_version": "201811",
+  "title": "Convention Floor Map",
+  "description": "",
+  "back_type": "image",
+  "back_color": "#ffffff",
+  "back_2400": "21858-map-back-313df51x1t7t1784644507-2400.jpg",
+  "back_1200": "21858-map-back-313df51x1t7t1784644507-1200.jpg",
+  "back_600": "21858-map-back-313df51x1t7t1784644507-600.jpg",
+  "back_300": "21858-map-back-313df51x1t7t1784644507-300.jpg",
+  "back_150": "21858-map-back-313df51x1t7t1784644507-150.jpg",
+  "scale_type": "px",
+  "scale_conversion": "0.999984375",
+  "zoom": "1",
+  "address": null,
+  "map_style_id": "fd20b4c39b9bfb18",
+  "map_lat": null,
+  "map_lng": null,
+  "map_zoom": "17",
+  "map_type": "roadmap",
+  "image_preview_1200": "21858-map-preview-sq6k410gy4c61784644517-1200.jpg",
+  "image_preview_600": "21858-map-preview-sq6k410gy4c61784644517-600.jpg",
+  "image_preview_300": "21858-map-preview-sq6k410gy4c61784644517-300.jpg",
+  "image_preview_150": "21858-map-preview-sq6k410gy4c61784644517-150.jpg",
+  "private": "0",
+  "live": "1",
+  "map_order": "1",
+  "created": "1784643595",
+  "timestamp": "1784644928",
+  "active": "1",
+  "fields": [
+   "id",
+   "event_id",
+   "acct_id",
+   "map_version",
+   "title",
+   "description",
+   "back_type",
+   "back_color",
+   "back_2400",
+   "back_1200",
+   "back_600",
+   "back_300",
+   "back_150",
+   "scale_type",
+   "scale_conversion",
+   "zoom",
+   "address",
+   "map_style_id",
+   "map_lat",
+   "map_lng",
+   "map_zoom",
+   "map_type",
+   "image_preview_1200",
+   "image_preview_600",
+   "image_preview_300",
+   "image_preview_150",
+   "private",
+   "live",
+   "map_order",
+   "created",
+   "timestamp",
+   "active"
+  ]
+ },
+ "booths": [],
+ "sections": [],
+ "seats": [],
+ "icons": [],
+ "pictures": [],
+ "text_boxes": [],
+ "ticket_restrictions": [
+  {
+   "ticket_id": "44588",
+   "section_id": "53597",
+   "section_name": null
+  },
+  {
+   "ticket_id": "44466",
+   "section_id": "53932",
+   "section_name": null
+  },
+  {
+   "ticket_id": "42679",
+   "section_id": "53942",
+   "section_name": null
+  },
+  {
+   "ticket_id": "42663",
+   "section_id": "53943",
+   "section_name": null
+  },
+  {
+   "ticket_id": "44955",
+   "section_id": "53932",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45277",
+   "section_id": "54154",
+   "section_name": null
+  },
+  {
+   "ticket_id": "18960",
+   "section_id": "54354",
+   "section_name": null
+  },
+  {
+   "ticket_id": "8776",
+   "section_id": "54357",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45552",
+   "section_id": "54403",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45551",
+   "section_id": "54404",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45572",
+   "section_id": "54410",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45572",
+   "section_id": "54411",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45574",
+   "section_id": "54433",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45552",
+   "section_id": "54401",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45706",
+   "section_id": "54518",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45728",
+   "section_id": "54535",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54532",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54520",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54521",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54522",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54523",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45726",
+   "section_id": "54531",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45880",
+   "section_id": "54731",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45879",
+   "section_id": "54732",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45879",
+   "section_id": "54733",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45952",
+   "section_id": "54791",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45959",
+   "section_id": "54792",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45952",
+   "section_id": "54793",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55102",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55103",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55104",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55105",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55106",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55107",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55108",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55109",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45404",
+   "section_id": "55111",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55149",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55150",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55153",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55154",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55155",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55160",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55161",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55169",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55170",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55171",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55172",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55239",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55241",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55243",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55245",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "55247",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55248",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45324",
+   "section_id": "55249",
+   "section_name": null
+  },
+  {
+   "ticket_id": "47391",
+   "section_id": "55928",
+   "section_name": null
+  },
+  {
+   "ticket_id": "31777",
+   "section_id": "55302",
+   "section_name": null
+  },
+  {
+   "ticket_id": "30321",
+   "section_id": "54147",
+   "section_name": null
+  },
+  {
+   "ticket_id": "30321",
+   "section_id": "55976",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "56300",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48346",
+   "section_id": "56608",
+   "section_name": null
+  },
+  {
+   "ticket_id": "46657",
+   "section_id": "56609",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48362",
+   "section_id": "56609",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48345",
+   "section_id": "56611",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49003",
+   "section_id": "57935",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49004",
+   "section_id": "57936",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49000",
+   "section_id": "57937",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49002",
+   "section_id": "57938",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49010",
+   "section_id": "57939",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49590",
+   "section_id": "58688",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49866",
+   "section_id": "59383",
+   "section_name": null
+  },
+  {
+   "ticket_id": "47998",
+   "section_id": "57887",
+   "section_name": null
+  },
+  {
+   "ticket_id": "32067",
+   "section_id": "60119",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "60544",
+   "section_name": null
+  },
+  {
+   "ticket_id": "45325",
+   "section_id": "60546",
+   "section_name": null
+  },
+  {
+   "ticket_id": "39043",
+   "section_id": "60636",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50781",
+   "section_id": "60654",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50781",
+   "section_id": "60655",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50780",
+   "section_id": "60614",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50781",
+   "section_id": "60656",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50781",
+   "section_id": "60657",
+   "section_name": null
+  },
+  {
+   "ticket_id": "50781",
+   "section_id": "60658",
+   "section_name": null
+  },
+  {
+   "ticket_id": "52695",
+   "section_id": "62888",
+   "section_name": null
+  },
+  {
+   "ticket_id": "53109",
+   "section_id": "63133",
+   "section_name": null
+  },
+  {
+   "ticket_id": "53108",
+   "section_id": "63102",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48792",
+   "section_id": "63816",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49884",
+   "section_id": "63816",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48792",
+   "section_id": "63817",
+   "section_name": null
+  },
+  {
+   "ticket_id": "48792",
+   "section_id": "63823",
+   "section_name": null
+  },
+  {
+   "ticket_id": "49884",
+   "section_id": "63994",
+   "section_name": null
+  },
+  {
+   "ticket_id": "54585",
+   "section_id": "64758",
+   "section_name": null
+  },
+  {
+   "ticket_id": "54842",
+   "section_id": "64758",
+   "section_name": null
+  },
+  {
+   "ticket_id": "54906",
+   "section_id": "64758",
+   "section_name": null
+  },
+  {
+   "ticket_id": "55662",
+   "section_id": "65886",
+   "section_name": null
+  },
+  {
+   "ticket_id": "54575",
+   "section_id": "66171",
+   "section_name": null
+  },
+  {
+   "ticket_id": "57335",
+   "section_id": "67079",
+   "section_name": null
+  },
+  {
+   "ticket_id": "3357",
+   "section_id": "67176",
+   "section_name": null
+  },
+  {
+   "ticket_id": "57754",
+   "section_id": "67482",
+   "section_name": null
+  },
+  {
+   "ticket_id": "57755",
+   "section_id": "67483",
+   "section_name": null
+  },
+  {
+   "ticket_id": "59171",
+   "section_id": "68538",
+   "section_name": null
+  },
+  {
+   "ticket_id": "58409",
+   "section_id": "68570",
+   "section_name": null
+  },
+  {
+   "ticket_id": "60155",
+   "section_id": "69246",
+   "section_name": null
+  }
+ ],
+ "hw_ratio": 2.4,
+ "success": true,
+ "err_msg": "",
+ "step_up": null
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5"
+    />
+    <title>Tekko 2026 Schedule</title>
+    <meta name="description" content="Unofficial Tekko 2026 schedule, map and personal planner. Works offline." />
+    <meta name="theme-color" content="#0F1621" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F7F8FA" media="(prefers-color-scheme: light)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tekko 26" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <script>
+      // Applied before first paint so the app never flashes the wrong theme.
+      try {
+        var t = JSON.parse(localStorage.getItem('tekko.v1.prefs') || '{}').theme;
+        if (t && t !== 'system') document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

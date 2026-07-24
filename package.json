@@ -1,0 +1,32 @@
+{
+  "name": "tekko-2026",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Unofficial Tekko 2026 schedule companion — offline-first, static, no backend.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "fetch": "node scripts/fetch-raw.mjs",
+    "images": "node scripts/fetch-images.mjs",
+    "data": "node scripts/build-data.mjs && node scripts/validate.mjs",
+    "refresh": "npm run fetch && npm run data && npm run images",
+    "validate": "node scripts/validate.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.8"
+  }
+}
