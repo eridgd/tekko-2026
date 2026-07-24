@@ -28,6 +28,11 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/data\//],
         cleanupOutdatedCaches: true,
+        // A new deploy takes over silently in the background (no waiting, no
+        // banner, no forced reload). Combined with network-first data, a plain
+        // reload then shows the current schedule and the latest app code.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
           {
             // Schedule / maps / guests JSON: fetch fresh when online (so a
