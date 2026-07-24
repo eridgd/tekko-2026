@@ -62,10 +62,22 @@ function dayLabel(key) {
   };
 }
 
-async function imageSize(file) {
-  const { stdout } = await exec('identify', ['-format', '%w %h', file]);
-  const [w, h] = stdout.trim().split(/\s+/).map(Number);
-  return { width: w, height: h };
+/**
+ * Image dimensions via ImageMagick, with a fallback to the previously-built
+ * value. The map images are static, so a scheduled data-only refresh (which may
+ * run somewhere without ImageMagick installed) shouldn't fail just to re-measure
+ * a picture that hasn't changed.
+ */
+async function imageSize(file, fallback) {
+  try {
+    const { stdout } = await exec('identify', ['-format', '%w %h', file]);
+    const [w, h] = stdout.trim().split(/\s+/).map(Number);
+    if (w > 0 && h > 0) return { width: w, height: h };
+  } catch {
+    /* ImageMagick not available — use the fallback below */
+  }
+  if (fallback?.width > 0 && fallback?.height > 0) return fallback;
+  throw new Error(`Cannot determine dimensions for ${file} (no ImageMagick, no prior value)`);
 }
 
 function buildSessions(raw, warn) {
@@ -170,11 +182,21 @@ function buildGuests(raw) {
 }
 
 async function buildMaps(warn) {
+  // Dimensions from the last build, used as a fallback when ImageMagick isn't
+  // present (e.g. an automated data-only refresh).
+  const priorDims = {};
+  try {
+    const prior = JSON.parse(await readFile(join(OUT_DIR, 'maps.json'), 'utf8'));
+    for (const m of prior.maps ?? []) priorDims[m.key] = { width: m.width, height: m.height };
+  } catch {
+    /* first build — no prior maps.json */
+  }
+
   const maps = [];
   for (const def of MAPS) {
     const raw = JSON.parse(await readFile(join(RAW_DIR, `map-${def.id}.json`), 'utf8'));
     const file = join(IMG_DIR, 'maps', `${def.key}.webp`);
-    const { width, height } = await imageSize(file);
+    const { width, height } = await imageSize(file, priorDims[def.key]);
 
     const map = {
       key: def.key,
