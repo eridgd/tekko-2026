@@ -13,7 +13,7 @@ import {
   filtersToParams,
   type Filters,
 } from '../lib/filters';
-import { formatMinutes, slotKey } from '../lib/time';
+import { formatMinutes, relativeLabel, slotKey } from '../lib/time';
 import { SessionCard } from '../components/SessionCard';
 import { FilterSheet } from '../components/FilterSheet';
 import { ScheduleGrid } from '../components/ScheduleGrid';
@@ -398,8 +398,15 @@ function ActiveFilters({
   setFilters: (p: Partial<Filters>) => void;
   count: number;
 }) {
-  const { data } = useStore();
+  const { data, clock } = useStore();
   const pills: { key: string; label: string; clear: () => void }[] = [];
+
+  // How long ago the schedule snapshot was fetched from Eventeny (refreshed
+  // automatically every 30 min during the con).
+  const fetchedEpoch = Math.floor(new Date(data.schedule.fetchedAt).getTime() / 1000);
+  const updated = Number.isFinite(fetchedEpoch)
+    ? relativeLabel((fetchedEpoch - clock.epoch) / 60)
+    : null;
 
   for (const id of filters.cats) {
     const cat = data.categoryById.get(id);
@@ -460,6 +467,7 @@ function ActiveFilters({
       )}
       <p className="count" aria-live="polite">
         {count} event{count === 1 ? '' : 's'}
+        {updated && <span className="count__updated"> · updated {updated}</span>}
       </p>
     </>
   );

@@ -832,6 +832,10 @@ img {
   font-weight: 600;
   padding: 4px 0 10px;
 }
+.count__updated {
+  font-weight: 500;
+  opacity: 0.85;
+}
 
 /* ==========================================================================
    Search
