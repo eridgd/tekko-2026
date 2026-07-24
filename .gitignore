@@ -11,3 +11,7 @@ data/pin-band*.png
 
 # TypeScript incremental build cache
 tsconfig.tsbuildinfo
+
+# editor swap files
+*.swp
+*.swo
