@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { navigate, type Route } from '../hooks/useRoute';
-import { PanZoom, type PanZoomHandle } from '../components/PanZoom';
+import { PanZoom, type PanZoomHandle, type Transform } from '../components/PanZoom';
 import { StickyHeader } from '../components/StickyHeader';
 import { formatMinutes } from '../lib/time';
 import { isLive, isPast } from '../lib/filters';
@@ -13,6 +13,14 @@ import {
   IconTarget,
 } from '../components/Icons';
 import type { Session } from '../types';
+
+/**
+ * Each map remembers its own pan/zoom while you switch between them: zoom into
+ * the floor map, glance at Artist Alley (which opens fresh), come back — the
+ * floor map is exactly as you left it. Module-level so it survives leaving and
+ * returning to the Maps tab within a session; resets on a full reload.
+ */
+const mapTransforms = new Map<string, Transform>();
 
 /** Collapsible info blurb for the vendor/artist maps — it's tall, and you don't
  *  need it after the first read, so its open/closed state is remembered. */
@@ -104,9 +112,13 @@ export function MapView({ route }: { route: Route }) {
 
       <div className="mapstage" ref={stageRef}>
         <PanZoom
+          // Remount per map so each opens at its own remembered view (or fresh).
+          key={map.key}
           ref={panzoom}
           aspect={map.width / map.height}
           maxScale={isFloor ? 9 : 6}
+          initial={mapTransforms.get(map.key)}
+          onTransformChange={(tr) => mapTransforms.set(map.key, tr)}
           // Keep pins a constant on-screen size instead of ballooning with zoom.
           onScaleChange={(s) =>
             stageRef.current?.style.setProperty('--pin-inv', String(1 / s))

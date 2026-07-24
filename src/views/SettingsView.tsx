@@ -2,7 +2,7 @@ import { useStore } from '../store';
 import { StickyHeader } from '../components/StickyHeader';
 import { navigate } from '../hooks/useRoute';
 import { downloadIcs } from '../lib/ics';
-import { IconChevronLeft, IconDownload } from '../components/Icons';
+import { IconChevronLeft, IconDownload, IconExternal } from '../components/Icons';
 import type { ThemePref } from '../lib/storage';
 
 const THEMES: { id: ThemePref; label: string }[] = [
@@ -24,7 +24,7 @@ export function SettingsView() {
           <button className="iconbtn" aria-label="Back" onClick={() => navigate('/now')}>
             <IconChevronLeft />
           </button>
-          <span className="hdr__title hdr__title--sm">Settings & about</span>
+          <span className="hdr__title hdr__title--sm">Settings & About</span>
         </div>
       </StickyHeader>
 
@@ -121,6 +121,15 @@ export function SettingsView() {
               rel="noreferrer noopener"
             >
               Official schedule
+            </a>
+            <a
+              className="btn btn--sm"
+              href="https://github.com/eridgd/tekko-2026"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              Source on GitHub
+              <IconExternal size={14} />
             </a>
           </div>
         </section>

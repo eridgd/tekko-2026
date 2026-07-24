@@ -30,6 +30,12 @@ export interface PanZoomHandle {
   getScale: () => number;
 }
 
+export interface Transform {
+  scale: number;
+  x: number;
+  y: number;
+}
+
 interface Props {
   aspect: number;
   children: ReactNode;
@@ -37,21 +43,19 @@ interface Props {
   maxScale?: number;
   className?: string;
   onScaleChange?: (scale: number) => void;
-}
-
-interface Transform {
-  scale: number;
-  x: number;
-  y: number;
+  /** Restore a prior pan/zoom (e.g. per-map memory). Clamped on first measure. */
+  initial?: Transform;
+  /** Fires on every pan/zoom change so callers can remember the view. */
+  onTransformChange?: (t: Transform) => void;
 }
 
 export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
-  { aspect, children, minScale = 1, maxScale = 9, className, onScaleChange },
+  { aspect, children, minScale = 1, maxScale = 9, className, onScaleChange, initial, onTransformChange },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
-  const [t, setT] = useState<Transform>({ scale: 1, x: 0, y: 0 });
+  const [t, setT] = useState<Transform>(() => initial ?? { scale: 1, x: 0, y: 0 });
   const [animating, setAnimating] = useState(false);
 
   // Base (scale-1) size of the content: the image "contain"-fitted to the box.
@@ -170,6 +174,10 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   useEffect(() => {
     onScaleChange?.(t.scale);
   }, [t.scale, onScaleChange]);
+
+  useEffect(() => {
+    onTransformChange?.(t);
+  }, [t, onTransformChange]);
 
   /** Zoom about a fixed viewport point so content under the fingers stays put. */
   const zoomAbout = useCallback(

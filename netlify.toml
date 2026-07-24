@@ -29,3 +29,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# Netlify serves .webmanifest as octet-stream by default; the correct type makes
+# the PWA install prompt reliable in stricter browsers.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
