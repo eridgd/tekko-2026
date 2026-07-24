@@ -16,14 +16,33 @@ export default defineConfig({
       // Icons live in public/ and are already swept up by globPatterns below;
       // listing them again here just produced duplicate precache entries.
       workbox: {
-        // Precache the entire app, not just the shell: the schedule JSON, all
-        // three map images and every guest photo. Con wifi is unusable, so
-        // anything not precached is effectively broken.
-        globPatterns: ['**/*.{js,css,html,svg,png,webp,json,woff2}'],
+        // Precache the app shell + all static assets (map images, guest photos)
+        // so it works offline. NOT the data JSON — that's handled network-first
+        // below so the schedule is always current when online (it's auto-
+        // refreshed every 30 min; a precached copy would go stale until the
+        // whole service worker updated).
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        globIgnores: ['**/data/**'],
         // floor.webp is ~490KB; the default 2MB limit would silently skip it.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/data\//],
         cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // Schedule / maps / guests JSON: fetch fresh when online (so a
+            // reload shows the latest data), fall back to the last-seen copy
+            // when offline or on dead con wifi.
+            urlPattern: ({ url }) => url.pathname.startsWith('/data/') && url.pathname.endsWith('.json'),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'tekko-schedule-data',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 12 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       manifest: {
         name: 'Tekko 2026 Schedule',
