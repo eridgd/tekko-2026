@@ -37,7 +37,7 @@ export const SessionCard = memo(function SessionCard({
   const category = data.categoryById.get(session.cat);
 
   const href = `#/event/${session.id}${backTo ? `?back=${encodeURIComponent(backTo)}` : ''}`;
-  const { hoverProps, preview } = useSessionPreview(session);
+  const { hoverProps, preview } = useSessionPreview(session, href);
 
   return (
     <div

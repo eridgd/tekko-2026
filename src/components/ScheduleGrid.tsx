@@ -2,6 +2,7 @@ import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { formatMinutes } from '../lib/time';
 import { filtersToParams, isLive, type Filters } from '../lib/filters';
+import { useSessionPreview } from './SessionPreview';
 import type { Session } from '../types';
 
 /**
@@ -10,11 +11,13 @@ import type { Session } from '../types';
  */
 
 const PX_PER_MIN = 2.6;
-const ROW_H = 56;
+// Tall enough for a two-line title plus the time without clipping the second
+// line — short rows were cutting long titles off mid-line.
+const ROW_H = 64;
 const LABEL_W = 132;
 
 export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filters: Filters }) {
-  const { data, clock, isSaved } = useStore();
+  const { data, clock } = useStore();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { rows, startMin, endMin } = useMemo(() => {
@@ -109,32 +112,53 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
                   aria-hidden="true"
                 />
               ))}
-              {items.map((s) => {
-                const live = isLive(s, { nowDay: clock.day, nowMinutes: clock.minutes });
-                const cat = data.categoryById.get(s.cat);
-                return (
-                  <a
-                    key={s.id}
-                    className={`grid__item${isSaved(s.id) ? ' grid__item--saved' : ''}${
-                      live ? ' grid__item--live' : ''
-                    }`}
-                    href={`#/event/${s.id}?back=${encodeURIComponent(backTo)}`}
-                    style={{
-                      left: (s.startMin - startMin) * PX_PER_MIN,
-                      width: Math.max(Math.max(s.durMin, 20) * PX_PER_MIN - 3, 34),
-                      borderLeftColor: cat?.color ?? 'var(--border-strong)',
-                    }}
-                    title={`${s.title} — ${formatMinutes(s.startMin)}`}
-                  >
-                    <span className="grid__itemtitle">{s.title}</span>
-                    <span className="grid__itemtime">{formatMinutes(s.startMin)}</span>
-                  </a>
-                );
-              })}
+              {items.map((s) => (
+                <GridItem
+                  key={s.id}
+                  session={s}
+                  left={(s.startMin - startMin) * PX_PER_MIN}
+                  width={Math.max(Math.max(s.durMin, 20) * PX_PER_MIN - 3, 34)}
+                  href={`#/event/${s.id}?back=${encodeURIComponent(backTo)}`}
+                />
+              ))}
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function GridItem({
+  session,
+  left,
+  width,
+  href,
+}: {
+  session: Session;
+  left: number;
+  width: number;
+  href: string;
+}) {
+  const { data, clock, isSaved } = useStore();
+  const live = isLive(session, { nowDay: clock.day, nowMinutes: clock.minutes });
+  const cat = data.categoryById.get(session.cat);
+  const { hoverProps, preview } = useSessionPreview(session, href);
+
+  return (
+    <>
+      {preview}
+      <a
+        className={`grid__item${isSaved(session.id) ? ' grid__item--saved' : ''}${
+          live ? ' grid__item--live' : ''
+        }`}
+        href={href}
+        style={{ left, width, borderLeftColor: cat?.color ?? 'var(--border-strong)' }}
+        {...hoverProps}
+      >
+        <span className="grid__itemtitle">{session.title}</span>
+        <span className="grid__itemtime">{formatMinutes(session.startMin)}</span>
+      </a>
+    </>
   );
 }

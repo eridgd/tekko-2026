@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { formatDuration, formatMinutes } from '../lib/time';
@@ -7,71 +7,90 @@ import type { Session } from '../types';
 
 /**
  * Desktop hover preview: mousing over a card shows its description, guests and
- * full time without a click. Touch devices have no hover, so this is gated to
- * fine pointers with real hover — there, the tap-through to the detail page is
- * the interaction and this never activates.
+ * full time without a click. The whole popup is a link to the detail page, so
+ * you can click the row or the popup. Touch devices have no hover, so this is
+ * gated to fine-pointer/hover displays and never activates there.
  */
 
+// Cached once — the media query result is effectively constant per session and
+// re-evaluating it in every one of a few hundred cards is wasteful.
+let hoverCapable: boolean | undefined;
 function canHover(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    window.matchMedia?.('(hover: hover) and (pointer: fine)').matches
-  );
+  if (hoverCapable === undefined) {
+    hoverCapable =
+      typeof window !== 'undefined' &&
+      !!window.matchMedia &&
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+  return hoverCapable;
 }
 
-const OPEN_DELAY = 320;
+const OPEN_DELAY = 200;
 const CLOSE_DELAY = 130;
+// Ignore scroll for a moment after opening: a trackpad's incidental scroll
+// deltas would otherwise close the popup the instant it appears.
+const SCROLL_GRACE = 350;
 
-export function useSessionPreview(session: Session) {
+export function useSessionPreview(session: Session, href: string) {
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const openTimer = useRef<number>();
   const closeTimer = useRef<number>();
-  const enabled = useMemo(canHover, []);
+  const openedAt = useRef(0);
 
   const cancelOpen = () => window.clearTimeout(openTimer.current);
   const cancelClose = () => window.clearTimeout(closeTimer.current);
-
   const scheduleClose = () => {
     cancelClose();
     closeTimer.current = window.setTimeout(() => setAnchor(null), CLOSE_DELAY);
   };
 
   const onPointerEnter = (e: PointerEvent<HTMLElement>) => {
-    if (!enabled || e.pointerType !== 'mouse') return;
+    // Skip touch only; mouse / pen / unknown all get the preview.
+    if (e.pointerType === 'touch' || !canHover()) return;
     const el = e.currentTarget;
     cancelClose();
     cancelOpen();
-    openTimer.current = window.setTimeout(() => setAnchor(el.getBoundingClientRect()), OPEN_DELAY);
+    openTimer.current = window.setTimeout(() => {
+      openedAt.current = performance.now();
+      setAnchor(el.getBoundingClientRect());
+    }, OPEN_DELAY);
   };
 
   const onPointerLeave = (e: PointerEvent<HTMLElement>) => {
-    if (e.pointerType && e.pointerType !== 'mouse') return;
+    if (e.pointerType === 'touch') return;
     cancelOpen();
     scheduleClose();
   };
 
-  // Any scroll or resize invalidates the anchor rect — just close.
+  // A big scroll invalidates the anchor position, so close — but not within the
+  // grace window, and only for real scrolling (bubbling, non-capture).
   useEffect(() => {
     if (!anchor) return;
-    const close = () => setAnchor(null);
-    window.addEventListener('scroll', close, { passive: true, capture: true });
-    window.addEventListener('resize', close);
+    const onScroll = () => {
+      if (performance.now() - openedAt.current > SCROLL_GRACE) setAnchor(null);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
-      window.removeEventListener('scroll', close, { capture: true } as EventListenerOptions);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
   }, [anchor]);
 
-  useEffect(() => () => {
-    cancelOpen();
-    cancelClose();
-  }, []);
+  useEffect(
+    () => () => {
+      cancelOpen();
+      cancelClose();
+    },
+    []
+  );
 
   const preview =
     anchor &&
     createPortal(
       <PreviewCard
         session={session}
+        href={href}
         anchor={anchor}
         onPointerEnter={cancelClose}
         onPointerLeave={scheduleClose}
@@ -88,17 +107,19 @@ const MARGIN = 8;
 
 function PreviewCard({
   session,
+  href,
   anchor,
   onPointerEnter,
   onPointerLeave,
 }: {
   session: Session;
+  href: string;
   anchor: DOMRect;
   onPointerEnter: () => void;
   onPointerLeave: () => void;
 }) {
   const { data } = useStore();
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLAnchorElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
   const category = data.categoryById.get(session.cat);
@@ -124,10 +145,10 @@ function PreviewCard({
   }, [anchor]);
 
   return (
-    <div
+    <a
       ref={ref}
       className="preview"
-      role="tooltip"
+      href={href}
       style={{
         left: pos?.left ?? -9999,
         top: pos?.top ?? 0,
@@ -172,8 +193,6 @@ function PreviewCard({
           <span className="preview__key">Presented by:</span> {session.presenters.join(', ')}
         </p>
       )}
-
-      <p className="preview__hint">Click for full details</p>
-    </div>
+    </a>
   );
 }

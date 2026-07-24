@@ -137,22 +137,25 @@ export function ScheduleView({ route }: { route: Route }) {
   }, [route.raw]);
 
   useEffect(() => {
-    let raf = 0;
-    const onScroll = () => {
-      if (phase.current !== 'live' || raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
+    // Persist on scroll-IDLE, never per-frame: sessionStorage writes are
+    // synchronous and doing one every animation frame is what made scrolling
+    // jerky. A debounced write after scrolling settles is invisible to the user
+    // and still captures where they ended up.
+    let idle = 0;
+    const flush = () => {
+      if (phase.current === 'live') {
         setScheduleMemory({ hash: hashRef.current, scrollY: window.scrollY });
-      });
+      }
+    };
+    const onScroll = () => {
+      window.clearTimeout(idle);
+      idle = window.setTimeout(flush, 160);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', onScroll);
-      if (raf) cancelAnimationFrame(raf);
-      // Capture the final position before unmount (e.g. opening an event).
-      if (phase.current === 'live') {
-        setScheduleMemory({ hash: hashRef.current, scrollY: window.scrollY });
-      }
+      window.clearTimeout(idle);
+      flush(); // final capture before unmount (e.g. opening an event)
     };
   }, []);
 

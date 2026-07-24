@@ -491,7 +491,9 @@
   color: var(--text);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* Top-align so a two-line title is never vertically clipped by centering;
+     if anything is squeezed it's the time line, which is the lower priority. */
+  justify-content: flex-start;
   gap: 1px;
 }
 .grid__item:hover {

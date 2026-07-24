@@ -714,10 +714,14 @@ img {
   50% { opacity: 0.35; }
 }
 
-/* Long day lists: let the browser skip offscreen layout work. */
-.cardlist > * {
+/* Long day lists: let the browser skip offscreen layout work. Applied per-CARD
+   (not per time-slot section) with a close-to-real height estimate — a wildly
+   wrong estimate on a tall section made the scrollbar jump and scrolling jerky
+   as sections were measured. The `auto` keyword remembers each card's real
+   height after first render, so it self-corrects. */
+.card {
   content-visibility: auto;
-  contain-intrinsic-size: auto 88px;
+  contain-intrinsic-size: auto 76px;
 }
 
 /* ==========================================================================
