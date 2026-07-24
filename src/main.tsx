@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { loadAppData } from './data/load';
 import { StoreProvider } from './store';
 import { App } from './App';
-import { UpdatePrompt } from './components/UpdatePrompt';
 import type { AppData } from './types';
 import './index.css';
 import './components.css';
@@ -11,6 +10,28 @@ import './components.css';
 // We manage scroll position ourselves (schedule remembers where you were, detail
 // views start at the top). Let the browser stop fighting us over it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+// Register the service worker and keep checking for a newer one. The worker is
+// built with skipWaiting + clientsClaim, so a new deploy takes over on its own
+// — no banner, no forced reload. New app code applies on the next reload; the
+// schedule data is already kept fresh (network-first + the in-app 30-min
+// re-fetch), which is the part that actually changes during the con.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((reg) => {
+        const check = () => reg.update().catch(() => {});
+        setInterval(check, 3 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) check();
+        });
+      })
+      .catch(() => {
+        /* no SW in dev, or registration blocked — the app still works online */
+      });
+  });
+}
 
 function Root() {
   const [data, setData] = useState<AppData | null>(null);
@@ -91,14 +112,7 @@ function Root() {
     );
   }
 
-  // Rendered on every path so the service worker registers (and starts checking
-  // for updates) regardless of whether the data loaded.
-  return (
-    <>
-      {content}
-      <UpdatePrompt />
-    </>
-  );
+  return content;
 }
 
 createRoot(document.getElementById('root')!).render(
