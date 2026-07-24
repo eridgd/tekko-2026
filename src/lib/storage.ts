@@ -46,6 +46,8 @@ export interface Prefs {
   mapInfoOpen: boolean;
   /** Whether the grid view's room-label column is collapsed for more timeline width. */
   gridRoomsCollapsed: boolean;
+  /** Whether the "overlapping events" section on My Schedule is collapsed. */
+  conflictsCollapsed: boolean;
   /** Ids dismissed from the "these saved events are gone" notice. */
   dismissedMissing: string[];
 }
@@ -56,6 +58,7 @@ const DEFAULT_PREFS: Prefs = {
   hidePast: false,
   mapInfoOpen: false,
   gridRoomsCollapsed: false,
+  conflictsCollapsed: false,
   dismissedMissing: [],
 };
 
@@ -70,6 +73,10 @@ export function loadPrefs(): Prefs {
       typeof raw.gridRoomsCollapsed === 'boolean'
         ? raw.gridRoomsCollapsed
         : DEFAULT_PREFS.gridRoomsCollapsed,
+    conflictsCollapsed:
+      typeof raw.conflictsCollapsed === 'boolean'
+        ? raw.conflictsCollapsed
+        : DEFAULT_PREFS.conflictsCollapsed,
     dismissedMissing: Array.isArray(raw.dismissedMissing)
       ? raw.dismissedMissing.filter((v): v is string => typeof v === 'string')
       : [],

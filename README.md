@@ -130,3 +130,8 @@ it's optional and harmless on hosts that ignore it.
 
 Unofficial and not endorsed by Tekko or PittJCS. Schedule content is theirs.
 **Trust signage at the room over this app.**
+
+## License
+
+The app's code is [MIT licensed](LICENSE). The schedule, map, and guest data
+belongs to Tekko / PittJCS and is included here only to power this companion.

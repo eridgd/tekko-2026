@@ -6,6 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { formatMinutes, relativeLabel, weekdayOf } from '../lib/time';
 import { isLive } from '../lib/filters';
 import { UPCOMING_WINDOW_MIN } from '../lib/constants';
+import { useScrollRestore } from '../hooks/useScrollRestore';
 import { IconPin, IconSettings } from '../components/Icons';
 import type { Session } from '../types';
 
@@ -17,6 +18,7 @@ import type { Session } from '../types';
 export function NowView() {
   const { data, clock, savedSessions } = useStore();
   const { days, sessions } = data.schedule;
+  const pageRef = useScrollRestore('now');
 
   const today = days.find((d) => d.key === clock.day);
   const conStart = days[0]?.key ?? '';
@@ -72,7 +74,7 @@ export function NowView() {
         </div>
       </StickyHeader>
 
-      <div className="page">
+      <div className="page" ref={pageRef}>
         {beforeCon && (
           <EmptyState
             icon="🎌"

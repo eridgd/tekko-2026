@@ -6,10 +6,13 @@ import { EmptyState } from '../components/EmptyState';
 import { findConflicts, conflictedIds } from '../lib/conflicts';
 import { downloadIcs } from '../lib/ics';
 import { formatMinutes, weekdayOf } from '../lib/time';
-import { IconAlert, IconDownload } from '../components/Icons';
+import { useScrollRestore } from '../hooks/useScrollRestore';
+import { IconAlert, IconChevronRight, IconDownload } from '../components/Icons';
 
 export function SavedView() {
-  const { savedSessions, missingSaved, clearMissing, storageOk } = useStore();
+  const { savedSessions, missingSaved, clearMissing, storageOk, prefs, setPrefs } = useStore();
+  const pageRef = useScrollRestore('saved');
+  const conflictsOpen = !prefs.conflictsCollapsed;
 
   const conflicts = useMemo(() => findConflicts(savedSessions), [savedSessions]);
   const clashing = useMemo(() => conflictedIds(conflicts), [conflicts]);
@@ -47,7 +50,7 @@ export function SavedView() {
         </div>
       </StickyHeader>
 
-      <div className="page">
+      <div className="page" ref={pageRef}>
         {!storageOk && (
           <p className="notice notice--warn">
             <IconAlert size={18} />
@@ -82,24 +85,36 @@ export function SavedView() {
           <>
             {conflicts.length > 0 && (
               <section>
-                <h2 className="sectiontitle">
-                  <IconAlert size={14} /> Overlapping events
-                </h2>
-                {conflicts.map((c) => (
-                  <div className="clash" key={`${c.a.id}-${c.b.id}`}>
-                    <p className="clash__head">
-                      {weekdayOf(c.a.day)} · {formatMinutes(
-                        Math.max(c.a.startMin, c.b.startMin)
-                      )}{' '}
-                      — these overlap by {c.overlapMin} min
-                    </p>
-                    <div className="clash__pair">
-                      <a href={`#/event/${c.a.id}`}>{c.a.title}</a>
-                      <span className="clash__vs">vs</span>
-                      <a href={`#/event/${c.b.id}`}>{c.b.title}</a>
+                <button
+                  className="collapsehead"
+                  aria-expanded={conflictsOpen}
+                  onClick={() => setPrefs({ conflictsCollapsed: conflictsOpen })}
+                >
+                  <IconAlert size={14} />
+                  <span className="collapsehead__title">
+                    Overlapping events
+                    <span className="collapsehead__count">{conflicts.length}</span>
+                  </span>
+                  <IconChevronRight
+                    size={18}
+                    className={`collapsehead__chev${conflictsOpen ? ' collapsehead__chev--open' : ''}`}
+                  />
+                </button>
+                {conflictsOpen &&
+                  conflicts.map((c) => (
+                    <div className="clash" key={`${c.a.id}-${c.b.id}`}>
+                      <p className="clash__head">
+                        {weekdayOf(c.a.day)} ·{' '}
+                        {formatMinutes(Math.max(c.a.startMin, c.b.startMin))} — these overlap by{' '}
+                        {c.overlapMin} min
+                      </p>
+                      <div className="clash__pair">
+                        <a href={`#/event/${c.a.id}`}>{c.a.title}</a>
+                        <span className="clash__vs">vs</span>
+                        <a href={`#/event/${c.b.id}`}>{c.b.title}</a>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </section>
             )}
 
