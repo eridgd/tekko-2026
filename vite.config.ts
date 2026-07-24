@@ -6,7 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (not autoUpdate): a new deploy waits for the user to tap
+      // "Refresh" (see src/components/UpdatePrompt.tsx) instead of silently
+      // swapping — so an open app doesn't keep showing stale schedule data, but
+      // also isn't reloaded out from under someone mid-scroll.
+      registerType: 'prompt',
+      // We register the SW ourselves via the useRegisterSW hook.
+      injectRegister: false,
       // Icons live in public/ and are already swept up by globPatterns below;
       // listing them again here just produced duplicate precache entries.
       workbox: {

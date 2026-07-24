@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { loadAppData } from './data/load';
 import { StoreProvider } from './store';
 import { App } from './App';
+import { UpdatePrompt } from './components/UpdatePrompt';
 import type { AppData } from './types';
 import './index.css';
 import './components.css';
@@ -19,8 +20,9 @@ function Root() {
     loadAppData().then(setData, setError);
   }, []);
 
+  let content;
   if (error) {
-    return (
+    content = (
       <div className="boot">
         <div className="boot__inner">
           <h1>Couldn't load the schedule</h1>
@@ -35,10 +37,8 @@ function Root() {
         </div>
       </div>
     );
-  }
-
-  if (!data) {
-    return (
+  } else if (!data) {
+    content = (
       <div className="boot">
         <div className="boot__inner">
           <div className="boot__spinner" />
@@ -46,12 +46,21 @@ function Root() {
         </div>
       </div>
     );
+  } else {
+    content = (
+      <StoreProvider data={data}>
+        <App />
+      </StoreProvider>
+    );
   }
 
+  // Rendered on every path so the service worker registers (and starts checking
+  // for updates) regardless of whether the data loaded.
   return (
-    <StoreProvider data={data}>
-      <App />
-    </StoreProvider>
+    <>
+      {content}
+      <UpdatePrompt />
+    </>
   );
 }
 
