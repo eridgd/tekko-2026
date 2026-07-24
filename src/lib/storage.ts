@@ -42,6 +42,10 @@ export interface Prefs {
   theme: ThemePref;
   view: ScheduleViewMode;
   hidePast: boolean;
+  /** Whether the vendor-map info blurb is expanded (remembered across visits). */
+  mapInfoOpen: boolean;
+  /** Whether the grid view's room-label column is collapsed for more timeline width. */
+  gridRoomsCollapsed: boolean;
   /** Ids dismissed from the "these saved events are gone" notice. */
   dismissedMissing: string[];
 }
@@ -50,6 +54,8 @@ const DEFAULT_PREFS: Prefs = {
   theme: 'system',
   view: 'agenda',
   hidePast: false,
+  mapInfoOpen: false,
+  gridRoomsCollapsed: false,
   dismissedMissing: [],
 };
 
@@ -59,6 +65,11 @@ export function loadPrefs(): Prefs {
     theme: raw.theme === 'light' || raw.theme === 'dark' ? raw.theme : DEFAULT_PREFS.theme,
     view: raw.view === 'grid' ? 'grid' : 'agenda',
     hidePast: typeof raw.hidePast === 'boolean' ? raw.hidePast : DEFAULT_PREFS.hidePast,
+    mapInfoOpen: typeof raw.mapInfoOpen === 'boolean' ? raw.mapInfoOpen : DEFAULT_PREFS.mapInfoOpen,
+    gridRoomsCollapsed:
+      typeof raw.gridRoomsCollapsed === 'boolean'
+        ? raw.gridRoomsCollapsed
+        : DEFAULT_PREFS.gridRoomsCollapsed,
     dismissedMissing: Array.isArray(raw.dismissedMissing)
       ? raw.dismissedMissing.filter((v): v is string => typeof v === 'string')
       : [],

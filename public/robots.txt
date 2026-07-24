@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-# Sitemap is added at deploy time once the domain is set (see README / deploy notes).
+Sitemap: https://tekko2026.erd.is/sitemap.xml

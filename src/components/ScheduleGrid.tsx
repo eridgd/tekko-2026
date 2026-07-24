@@ -1,7 +1,9 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../store';
+import { navigate } from '../hooks/useRoute';
 import { formatMinutes } from '../lib/time';
 import { filtersToParams, isLive, type Filters } from '../lib/filters';
+import { IconChevronLeft, IconChevronRight, IconPin } from './Icons';
 import { useSessionPreview } from './SessionPreview';
 import type { Session } from '../types';
 
@@ -14,11 +16,15 @@ const PX_PER_MIN = 2.6;
 // Tall enough for a two-line title plus the time without clipping the second
 // line — short rows were cutting long titles off mid-line.
 const ROW_H = 64;
-const LABEL_W = 132;
+const LABEL_FULL = 132;
+// Collapsed: a thin strip that still hosts the expand button but frees the width.
+const LABEL_COLLAPSED = 26;
 
 export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filters: Filters }) {
-  const { data, clock } = useStore();
+  const { data, clock, prefs, setPrefs } = useStore();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const collapsed = prefs.gridRoomsCollapsed;
+  const LABEL_W = collapsed ? LABEL_COLLAPSED : LABEL_FULL;
 
   const { rows, startMin, endMin } = useMemo(() => {
     const byTrack = new Map<number, Session[]>();
@@ -85,8 +91,19 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
               {formatMinutes(startMin + i * 60)}
             </span>
           ))}
-          {/* Opaque corner where the frozen ruler meets the frozen label column. */}
-          <span className="grid__corner" style={{ width: LABEL_W }} aria-hidden="true" />
+          {/* Opaque corner where the frozen ruler meets the frozen label column;
+              also hosts the collapse/expand toggle for the room column. */}
+          <div className="grid__corner" style={{ width: LABEL_W }}>
+            <button
+              className="grid__collapse"
+              onClick={() => setPrefs({ gridRoomsCollapsed: !collapsed })}
+              aria-label={collapsed ? 'Show room names' : 'Hide room names for more width'}
+              aria-pressed={collapsed}
+              title={collapsed ? 'Show rooms' : 'Hide rooms'}
+            >
+              {collapsed ? <IconChevronRight size={18} /> : <IconChevronLeft size={18} />}
+            </button>
+          </div>
         </div>
 
         {nowOffset != null && (
@@ -99,19 +116,30 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
 
         {rows.map(({ track, trackId, items }) => (
           <div className="grid__row" key={trackId} style={{ height: ROW_H }}>
-            <div className="grid__label" style={{ width: LABEL_W }}>
-              <span className="grid__labeltext">{track?.title ?? 'Unknown room'}</span>
-              {track?.floor != null && <span className="grid__floor">Floor {track.floor}</span>}
-            </div>
-            <div className="grid__lane" style={{ width }}>
-              {Array.from({ length: hours }, (_, i) => (
-                <span
-                  key={i}
-                  className="grid__gridline"
-                  style={{ left: i * 60 * PX_PER_MIN }}
-                  aria-hidden="true"
-                />
-              ))}
+            <button
+              className={`grid__label${track?.mapped ? ' grid__label--tomap' : ''}`}
+              style={{ width: LABEL_W }}
+              disabled={!track?.mapped}
+              title={track?.mapped ? `Show ${track.title} on the map` : track?.title}
+              onClick={() => track?.mapped && navigate(`/map/floor?pin=${trackId}`)}
+            >
+              {collapsed ? (
+                <span className="grid__labelmini">{track?.floor ?? '·'}</span>
+              ) : (
+                <>
+                  <span className="grid__labeltext">{track?.title ?? 'Unknown room'}</span>
+                  <span className="grid__labelmeta">
+                    {track?.floor != null && <span className="grid__floor">Floor {track.floor}</span>}
+                    {track?.mapped && <IconPin size={11} className="grid__labelpin" />}
+                  </span>
+                </>
+              )}
+            </button>
+            {/* Hour gridlines are one CSS gradient, not hundreds of spans. */}
+            <div
+              className="grid__lane"
+              style={{ width, ['--hour-w' as string]: `${60 * PX_PER_MIN}px` }}
+            >
               {items.map((s) => (
                 <GridItem
                   key={s.id}
@@ -154,6 +182,7 @@ function GridItem({
         }`}
         href={href}
         style={{ left, width, borderLeftColor: cat?.color ?? 'var(--border-strong)' }}
+        title={`${session.title} — ${formatMinutes(session.startMin)}`}
         {...hoverProps}
       >
         <span className="grid__itemtitle">{session.title}</span>

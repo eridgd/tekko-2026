@@ -404,10 +404,12 @@
 .grid__tick {
   position: absolute;
   top: 6px;
+  /* Left-align each label to the start of its hour column so the earliest
+     label isn't half-hidden behind the sticky room-label column. */
+  padding-left: 4px;
   font-size: 0.6875rem;
   font-weight: 700;
   color: var(--text-faint);
-  transform: translateX(-50%);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -418,8 +420,21 @@
   height: 30px;
   background: var(--bg);
   border-right: 1px solid var(--border);
-  z-index: 2;
-  display: block;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.grid__collapse {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+.grid__collapse:hover {
+  color: var(--accent);
 }
 
 .grid__now {
@@ -448,7 +463,37 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
+  text-align: left;
+  color: var(--text);
+  overflow: hidden;
+  transition: background 0.15s;
+}
+.grid__label--tomap {
+  cursor: pointer;
+}
+.grid__label--tomap:hover {
+  background: var(--accent-soft);
+}
+.grid__label:disabled {
+  cursor: default;
+}
+.grid__labelmeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.grid__labelpin {
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.grid__labelmini {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--text-dim);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  margin: 0 auto;
 }
 .grid__labeltext {
   font-size: 0.75rem;
@@ -468,14 +513,13 @@
 .grid__lane {
   position: relative;
   flex: 0 0 auto;
-}
-.grid__gridline {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-  opacity: 0.5;
+  /* One repeating gradient draws every hour gridline (was a span per hour per
+     room — hundreds of DOM nodes). One line at the start of each --hour-w. */
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--border) 50%, transparent) 0 1px,
+    transparent 1px var(--hour-w, 156px)
+  );
 }
 
 .grid__item {
@@ -1113,6 +1157,28 @@
 .mapcaption__note {
   margin-top: 10px;
   font-size: 0.8125rem;
+}
+
+.mapinfo__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.mapinfo__chev {
+  transform: rotate(-90deg);
+  transition: transform 0.18s;
+  color: var(--text-faint);
+}
+.mapinfo__chev--open {
+  transform: rotate(90deg);
+}
+.mapinfo__body {
+  padding-top: 8px;
 }
 
 .mapctl {

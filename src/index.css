@@ -257,9 +257,10 @@ img {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: saturate(180%) blur(12px);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  /* Solid, not a backdrop-blur: a blurred sticky header re-samples the content
+     behind it every scroll frame, which was the main source of scroll jank
+     (especially on Linux where Chrome may rasterize it on the CPU). */
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding-top: var(--safe-t);
 }
@@ -280,6 +281,7 @@ img {
   font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -287,11 +289,16 @@ img {
   white-space: nowrap;
 }
 
+/* Block so it sits on its own line under the title instead of running straight
+   into it ("Tekko 2026Thursday · 1:29 AM"). */
 .hdr__sub {
+  display: block;
   font-size: 0.75rem;
   color: var(--text-dim);
   font-weight: 500;
   letter-spacing: 0;
+  line-height: 1.3;
+  margin-top: 1px;
 }
 
 .iconbtn {
@@ -323,9 +330,9 @@ img {
   right: 0;
   z-index: 40;
   display: flex;
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  /* Solid, not a backdrop-blur — see .hdr. On desktop this becomes a full-height
+     left rail that would otherwise keep a 216px-wide blur alive every frame. */
+  background: var(--surface);
   border-top: 1px solid var(--border);
   padding-bottom: var(--safe-b);
   padding-left: var(--safe-l);
@@ -714,14 +721,16 @@ img {
   50% { opacity: 0.35; }
 }
 
-/* Long day lists: let the browser skip offscreen layout work. Applied per-CARD
-   (not per time-slot section) with a close-to-real height estimate — a wildly
-   wrong estimate on a tall section made the scrollbar jump and scrolling jerky
-   as sections were measured. The `auto` keyword remembers each card's real
-   height after first render, so it self-corrects. */
+/* The single most important thing for smooth scrolling of a long day (up to
+   ~380 cards ≈ a 40,000px page): cap how much the browser renders/composites at
+   once to roughly the viewport. The first version had this on the list and
+   scrolled smoothly; removing it is what made scrolling stutter. Applied
+   per-card with a realistic average height so total page height stays stable
+   (fixes scroll-restore), and `auto` remembers each card's true height after
+   first paint. */
 .card {
   content-visibility: auto;
-  contain-intrinsic-size: auto 76px;
+  contain-intrinsic-size: auto 108px;
 }
 
 /* ==========================================================================

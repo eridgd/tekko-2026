@@ -5,8 +5,44 @@ import { PanZoom, type PanZoomHandle } from '../components/PanZoom';
 import { StickyHeader } from '../components/StickyHeader';
 import { formatMinutes } from '../lib/time';
 import { isLive, isPast } from '../lib/filters';
-import { IconChevronLeft, IconClose, IconMinus, IconPlus, IconTarget } from '../components/Icons';
+import {
+  IconChevronLeft,
+  IconClose,
+  IconMinus,
+  IconPlus,
+  IconTarget,
+} from '../components/Icons';
 import type { Session } from '../types';
+
+/** Collapsible info blurb for the vendor/artist maps — it's tall, and you don't
+ *  need it after the first read, so its open/closed state is remembered. */
+function VendorMapInfo({ mapKey, description }: { mapKey: string; description?: string }) {
+  const { prefs, setPrefs } = useStore();
+  const open = prefs.mapInfoOpen;
+  const noun = mapKey === 'artistalley' ? 'artist is at each table' : 'vendor is in each booth';
+
+  return (
+    <div className="mappanel mapinfo">
+      <button
+        className="mapinfo__toggle"
+        aria-expanded={open}
+        onClick={() => setPrefs({ mapInfoOpen: !open })}
+      >
+        <span>About this map</span>
+        <IconChevronLeft size={18} className={`mapinfo__chev${open ? ' mapinfo__chev--open' : ''}`} />
+      </button>
+      {open && (
+        <div className="mapinfo__body">
+          {description && <p className="mapcaption">{description}</p>}
+          <p className="muted mapcaption__note">
+            Tekko doesn't publish which {noun}, so this map shows numbers only — find the number in
+            the listing, then locate it here.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MapView({ route }: { route: Route }) {
   const { data, clock } = useStore();
@@ -131,17 +167,7 @@ export function MapView({ route }: { route: Route }) {
           unmappedFrom={!selectedTrack && from && !data.pinByTrack.has(from.trackId) ? from : null}
         />
       ) : (
-        <div className="mappanel mappanel--hint">
-          {map.description ? (
-            <p className="mapcaption">{map.description}</p>
-          ) : (
-            <p>Pinch or scroll to zoom, drag to pan. Booth numbers are printed on the map.</p>
-          )}
-          <p className="muted mapcaption__note">
-            Tekko doesn't publish which vendor is in each booth, so this map shows booth numbers
-            only — find a vendor's number in their listing, then locate it here.
-          </p>
-        </div>
+        <VendorMapInfo mapKey={map.key} description={map.description} />
       )}
     </div>
   );
@@ -191,11 +217,8 @@ function RoomPanel({
         </div>
       );
     }
-    return (
-      <div className="mappanel mappanel--hint">
-        <p>Tap a marker to see what's on in that room.</p>
-      </div>
-    );
+    // Nothing selected: give the whole height to the map, no placeholder panel.
+    return null;
   }
 
   return (

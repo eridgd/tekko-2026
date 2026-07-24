@@ -207,23 +207,33 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
       const dist = Math.hypot(a!.x - b!.x, a!.y - b!.y);
       const cx = (a!.x + b!.x) / 2;
       const cy = (a!.y + b!.y) / 2;
-      const factor = dist / gesture.current.dist;
+
+      // Capture the previous gesture and advance it NOW, synchronously. The
+      // setT updater below runs later (batched) — if it read gesture.current
+      // then, a finger lifting first (endPointer sets it null) would throw and
+      // blank the map, and mid-pinch it would read the already-updated value.
+      const prev = gesture.current;
+      gesture.current = { dist, cx, cy };
+      // Fingers on the same spot → degenerate distance; skip this frame.
+      if (prev.dist < 1 || dist < 1) return;
+
+      const factor = dist / prev.dist;
+      const dMidX = cx - prev.cx;
+      const dMidY = cy - prev.cy;
       const rect = containerRef.current!.getBoundingClientRect();
+      const px = cx - rect.left;
+      const py = cy - rect.top;
       moved.current = true;
 
       setT((p) => {
         const scale = Math.min(Math.max(p.scale * factor, minScale), maxScale);
         const k = scale / p.scale;
-        const px = cx - rect.left;
-        const py = cy - rect.top;
-        // Combine the pinch with the two-finger drag of the midpoint.
-        return clamp({
-          scale,
-          x: px - (px - p.x) * k + (cx - gesture.current!.cx),
-          y: py - (py - p.y) * k + (cy - gesture.current!.cy),
-        });
+        // Zoom about the pinch midpoint, plus the two-finger drag of it.
+        const nx = px - (px - p.x) * k + dMidX;
+        const ny = py - (py - p.y) * k + dMidY;
+        if (!Number.isFinite(nx) || !Number.isFinite(ny)) return p;
+        return clamp({ scale, x: nx, y: ny });
       });
-      gesture.current = { dist, cx, cy };
     }
   };
 

@@ -45,9 +45,18 @@ export function StoreProvider({ data, children }: { data: AppData; children: Rea
   // 30s is fine: the smallest thing that depends on the clock is the "starting
   // in N min" label, and a half-minute of drift there is invisible.
   useEffect(() => {
-    const id = setInterval(() => setClock(conClock()), 30_000);
+    // Bail out of the state update when the con-minute hasn't actually changed.
+    // Every consumer of the store (all ~380 cards) re-renders on a clock change
+    // because context bypasses React.memo, and a 30s interval at minute
+    // granularity is a no-op half the time — returning the same object skips it.
+    const tick = () =>
+      setClock((prev) => {
+        const next = conClock();
+        return next.day === prev.day && next.minutes === prev.minutes ? prev : next;
+      });
+    const id = setInterval(tick, 30_000);
     const onVisible = () => {
-      if (!document.hidden) setClock(conClock());
+      if (!document.hidden) tick();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => {

@@ -1,7 +1,10 @@
 # Tekko 2026 Companion
 
+**Live app: [tekko2026.erd.is](https://tekko2026.erd.is/)**
+
 An unofficial schedule, map and personal planner for [Tekko 2026](https://www.eventeny.com/events/tekko2026-21858/)
-(Pittsburgh, July 23–26 2026). Static site, no backend, **works fully offline**.
+(Pittsburgh, July 23–26 2026). Static site, no backend, **works fully offline** —
+add it to your home screen and it runs with no signal.
 
 Built because the official Eventeny listing is hard to use on a phone while you're
 actually walking the convention floor.

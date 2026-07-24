@@ -30,6 +30,23 @@ const CLOSE_DELAY = 130;
 // Ignore scroll for a moment after opening: a trackpad's incidental scroll
 // deltas would otherwise close the popup the instant it appears.
 const SCROLL_GRACE = 350;
+// Don't open a preview if the user scrolled within this window — avoids popups
+// flickering open between trackpad swipes while scrolling.
+const SCROLL_SETTLE = 250;
+
+// One capture-phase listener for the whole app records the last scroll time.
+// Capture is required so it also sees scrolls inside the grid's own overflow
+// container (scroll events don't bubble to window).
+let lastScrollAt = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'scroll',
+    () => {
+      lastScrollAt = performance.now();
+    },
+    { capture: true, passive: true }
+  );
+}
 
 export function useSessionPreview(session: Session, href: string) {
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
@@ -51,6 +68,8 @@ export function useSessionPreview(session: Session, href: string) {
     cancelClose();
     cancelOpen();
     openTimer.current = window.setTimeout(() => {
+      // Don't pop open mid-scroll (cursor passing over rows as they move).
+      if (performance.now() - lastScrollAt < SCROLL_SETTLE) return;
       openedAt.current = performance.now();
       setAnchor(el.getBoundingClientRect());
     }, OPEN_DELAY);
@@ -62,17 +81,18 @@ export function useSessionPreview(session: Session, href: string) {
     scheduleClose();
   };
 
-  // A big scroll invalidates the anchor position, so close — but not within the
-  // grace window, and only for real scrolling (bubbling, non-capture).
+  // A scroll invalidates the anchor position, so close — but not within the
+  // grace window. Capture so scrolls inside the grid's overflow container also
+  // close it (otherwise a grid-mode popup floats at a stale position).
   useEffect(() => {
     if (!anchor) return;
     const onScroll = () => {
       if (performance.now() - openedAt.current > SCROLL_GRACE) setAnchor(null);
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { capture: true, passive: true });
     window.addEventListener('resize', onScroll);
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll, { capture: true });
       window.removeEventListener('resize', onScroll);
     };
   }, [anchor]);

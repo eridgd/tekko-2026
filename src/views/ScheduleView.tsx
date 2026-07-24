@@ -26,15 +26,25 @@ export function ScheduleView({ route }: { route: Route }) {
   const headerRef = useRef<HTMLDivElement>(null);
 
   const filters = useMemo<Filters>(() => {
-    const parsed = filtersFromParams(route.params);
+    // On a bare "/schedule" (tab tap / fresh load) resolve the remembered view's
+    // params up front, so we paint the right day on the FIRST frame instead of
+    // painting "today" and then visibly switching to the remembered day when the
+    // restore redirect lands.
+    let params = route.params;
+    if (route.raw === '/schedule') {
+      const mem = getScheduleMemory();
+      const q = mem && mem.hash.includes('?') ? mem.hash.slice(mem.hash.indexOf('?') + 1) : '';
+      if (q) params = new URLSearchParams(q);
+    }
+    const parsed = filtersFromParams(params);
     // Default to today if the con is running, otherwise day one.
     if (!parsed.day) {
       parsed.day = days.some((d) => d.key === clock.day) ? clock.day : days[0]?.key ?? null;
     }
     // hidePast is a preference, but the URL wins when explicitly present.
-    if (!route.params.has('future')) parsed.hidePast = prefs.hidePast;
+    if (!params.has('future')) parsed.hidePast = prefs.hidePast;
     return parsed;
-  }, [route.params, days, clock.day, prefs.hidePast]);
+  }, [route.raw, route.params, days, clock.day, prefs.hidePast]);
 
   /**
    * The search box is local state, synced to the URL on a debounce.
@@ -119,13 +129,15 @@ export function ScheduleView({ route }: { route: Route }) {
       }
       phase.current = 'live';
       if (mem && mem.hash === route.raw && mem.scrollY > 0) {
-        // content-visibility means real card heights settle over a few frames;
-        // re-apply until the target sticks (or we give up).
+        // Re-apply for a short window in case layout settles (fonts, wrapping)
+        // after mount. Without content-visibility the page is full height right
+        // away, so this normally sticks on the first frame; the retries just
+        // guard against late reflow. Give up once it holds or the window ends.
         const y = mem.scrollY;
         let tries = 0;
         const tick = () => {
           window.scrollTo(0, y);
-          if (++tries < 6 && Math.abs(window.scrollY - y) > 2) requestAnimationFrame(tick);
+          if (++tries < 20 && Math.abs(window.scrollY - y) > 2) requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
       }
