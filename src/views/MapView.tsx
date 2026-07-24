@@ -4,7 +4,8 @@ import { navigate, type Route } from '../hooks/useRoute';
 import { PanZoom, type PanZoomHandle, type Transform } from '../components/PanZoom';
 import { StickyHeader } from '../components/StickyHeader';
 import { formatMinutes } from '../lib/time';
-import { isLive, isPast } from '../lib/filters';
+import { filtersFromParams, filtersToParams, isLive, isPast } from '../lib/filters';
+import { getScheduleMemory } from '../lib/scheduleMemory';
 import {
   IconChevronLeft,
   IconClose,
@@ -270,9 +271,20 @@ function RoomPanel({
         live.length === 0 && <p className="muted">Nothing else scheduled here today.</p>
       )}
 
-      <a className="btn btn--ghost btn--sm btn--block" href={`#/schedule?track=${track.id}`}>
-        See all {track.count} events in this room
-      </a>
+      <button
+        className="btn btn--ghost btn--sm btn--block"
+        onClick={() => {
+          // Keep whatever filters (day, category, …) the user already had on the
+          // schedule and just set the room — don't wipe their context.
+          const mem = getScheduleMemory();
+          const q = mem && mem.hash.includes('?') ? mem.hash.slice(mem.hash.indexOf('?') + 1) : '';
+          const filters = filtersFromParams(new URLSearchParams(q));
+          filters.tracks = [track.id];
+          navigate(`/schedule?${filtersToParams(filters)}`);
+        }}
+      >
+        See {track.count} events in this room
+      </button>
     </div>
   );
 }
