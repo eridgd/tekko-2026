@@ -34,7 +34,7 @@ To pick up changes:
 ```bash
 npm run refresh      # re-fetch + rebuild + validate + re-download images
 git commit -am "refresh schedule data"
-git push             # Netlify redeploys
+git push             # your host redeploys from the repo
 ```
 
 `npm run refresh` runs three steps, and any of them will stop the build rather than
@@ -110,9 +110,14 @@ Nothing leaves the device; there's no account and no analytics.
 
 ## Deploying
 
-Netlify picks up `netlify.toml` automatically: `npm run build` → `dist/`.
-Any static host works — the output is plain files and hash routing means no
-server-side rewrite rules are required.
+Build with `npm run build` and serve the `dist/` folder on any static host —
+the output is plain files, and hash routing means no server-side rewrite rules
+are required.
+
+For a git-connected host, set the build command to `npm run build` and the
+publish directory to `dist`. The repo includes a config file that sets those
+plus cache headers (so a mid-con data refresh reaches already-installed apps);
+it's optional and harmless on hosts that ignore it.
 
 ## Not affiliated
 

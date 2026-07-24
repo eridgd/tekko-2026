@@ -15,3 +15,6 @@ tsconfig.tsbuildinfo
 # editor swap files
 *.swp
 *.swo
+
+# local-only, not for the repo
+CLAUDE.md
