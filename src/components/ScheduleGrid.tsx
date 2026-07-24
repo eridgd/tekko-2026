@@ -1,8 +1,9 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store';
 import { navigate } from '../hooks/useRoute';
 import { formatMinutes } from '../lib/time';
 import { filtersToParams, isLive, type Filters } from '../lib/filters';
+import { getScheduleMemory } from '../lib/scheduleMemory';
 import { IconChevronLeft, IconChevronRight, IconPin } from './Icons';
 import { useSessionPreview } from './SessionPreview';
 import type { Session } from '../types';
@@ -67,16 +68,25 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
       ? (clock.minutes - startMin) * PX_PER_MIN
       : null;
 
-  // Open the grid at "now" rather than at 8am when you're mid-con.
-  useEffect(() => {
-    if (nowOffset != null && scrollRef.current) {
-      scrollRef.current.scrollLeft = Math.max(0, nowOffset - 120);
+  const backTo = `/schedule?${filtersToParams(filters)}`;
+
+  // Where to open the time axis: back at the exact spot you left (returning
+  // from an event detail — restore must win over the now-scroll below),
+  // otherwise at "now" rather than at 8am when you're mid-con. Grid geometry
+  // is fixed (no content-visibility), so a one-shot restore is exact.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const mem = getScheduleMemory();
+    if (mem && mem.hash === backTo && mem.gridLeft !== undefined && mem.gridTop !== undefined) {
+      el.scrollLeft = mem.gridLeft;
+      el.scrollTop = mem.gridTop;
+      return;
     }
+    if (nowOffset != null) el.scrollLeft = Math.max(0, nowOffset - 120);
     // Only on first render for a given day.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.day]);
-
-  const backTo = `/schedule?${filtersToParams(filters)}`;
 
   return (
     <div className="grid" ref={scrollRef}>

@@ -86,6 +86,52 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
     [base.w, base.h, box.w, box.h, minScale, maxScale]
   );
 
+  // ---- Fling / momentum ----
+  // Track recent pointer velocity (px per ms) and coast after release with
+  // friction until it slows to a stop or hits an edge. Defined here (before the
+  // zoom helpers) so those can cancel an in-flight coast.
+  const velocity = useRef({ vx: 0, vy: 0 });
+  const lastMove = useRef({ t: 0, x: 0, y: 0 });
+  const momentumRAF = useRef(0);
+  const tRef = useRef(t);
+  tRef.current = t;
+
+  const cancelMomentum = useCallback(() => {
+    if (momentumRAF.current) {
+      cancelAnimationFrame(momentumRAF.current);
+      momentumRAF.current = 0;
+    }
+  }, []);
+
+  const startMomentum = useCallback(() => {
+    const FRICTION = 0.93; // per 60fps frame
+    const MIN_SPEED = 0.02; // px/ms — below this, stop
+    let { vx, vy } = velocity.current;
+    if (Math.hypot(vx, vy) < 0.05) return; // not a real fling
+    let last = 0;
+    const step = (now: number) => {
+      if (!last) last = now;
+      const dt = Math.min(now - last, 40);
+      last = now;
+      const decay = Math.pow(FRICTION, dt / 16.667);
+      vx *= decay;
+      vy *= decay;
+      const p = tRef.current;
+      const next = clamp({ scale: p.scale, x: p.x + vx * dt, y: p.y + vy * dt });
+      if (next.x === p.x) vx = 0; // hit a horizontal edge
+      if (next.y === p.y) vy = 0; // hit a vertical edge
+      tRef.current = next;
+      setAnimating(false);
+      setT(next);
+      if (Math.hypot(vx, vy) >= MIN_SPEED) {
+        momentumRAF.current = requestAnimationFrame(step);
+      } else {
+        momentumRAF.current = 0;
+      }
+    };
+    momentumRAF.current = requestAnimationFrame(step);
+  }, [clamp]);
+
   /**
    * A focus() call can arrive before ResizeObserver has measured us (the map
    * deep-link fires on mount). Park it and replay once we know our geometry,
@@ -95,6 +141,7 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
 
   const focusAt = useCallback(
     (nx: number, ny: number, scale: number | undefined, animate: boolean) => {
+      cancelMomentum();
       setAnimating(animate);
       setT((prev) => {
         const s = Math.min(Math.max(scale ?? prev.scale, minScale), maxScale);
@@ -127,6 +174,7 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   /** Zoom about a fixed viewport point so content under the fingers stays put. */
   const zoomAbout = useCallback(
     (factor: number, px: number, py: number, animate = false) => {
+      cancelMomentum();
       setAnimating(animate);
       setT((prev) => {
         const scale = Math.min(Math.max(prev.scale * factor, minScale), maxScale);
@@ -148,6 +196,7 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
         focusAt(nx, ny, scale, animate);
       },
       reset() {
+        cancelMomentum();
         setAnimating(true);
         setT(clamp({ scale: 1, x: 0, y: 0 }));
       },
@@ -156,7 +205,7 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
       },
       getScale: () => t.scale,
     }),
-    [clamp, box.w, base.w, zoomAbout, focusAt, t.scale]
+    [clamp, box.w, base.w, zoomAbout, focusAt, t.scale, cancelMomentum]
   );
 
   /* ---------------- pointer handling ---------------- */
@@ -165,6 +214,12 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   const gesture = useRef<{ dist: number; cx: number; cy: number } | null>(null);
   const moved = useRef(false);
   const lastTap = useRef(0);
+  // Where a single-pointer press started, and whether it has become a drag.
+  // We defer capturing the pointer until movement passes DRAG_THRESHOLD, so a
+  // tap that lands on a pin/booth still fires that element's own click, while a
+  // drag that starts on one pans the map.
+  const downPoint = useRef<{ x: number; y: number } | null>(null);
+  const DRAG_THRESHOLD = 8;
 
   const localPoint = (e: { clientX: number; clientY: number }) => {
     const rect = containerRef.current!.getBoundingClientRect();
@@ -172,20 +227,32 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    // Let taps on pins/booths through to their own handlers.
-    if ((e.target as HTMLElement).closest('[data-nodrag]')) return;
-    containerRef.current?.setPointerCapture(e.pointerId);
+    cancelMomentum(); // grabbing the map stops any coasting
+    velocity.current = { vx: 0, vy: 0 };
+    lastMove.current = { t: performance.now(), x: e.clientX, y: e.clientY };
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     moved.current = false;
     setAnimating(false);
 
     if (pointers.current.size === 2) {
+      // Second finger down → pinch. Capture both now.
+      downPoint.current = null;
+      for (const id of pointers.current.keys()) {
+        try {
+          containerRef.current?.setPointerCapture(id);
+        } catch {
+          /* pointer already gone */
+        }
+      }
       const [a, b] = [...pointers.current.values()];
       gesture.current = {
         dist: Math.hypot(a!.x - b!.x, a!.y - b!.y),
         cx: (a!.x + b!.x) / 2,
         cy: (a!.y + b!.y) / 2,
       };
+    } else {
+      // Single press: don't capture yet — decide tap vs drag on move.
+      downPoint.current = { x: e.clientX, y: e.clientY };
     }
   };
 
@@ -195,9 +262,35 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (pointers.current.size === 1) {
+      // Below the threshold it's still a potential tap: don't pan, don't
+      // capture (so a pin/booth click can fire on release).
+      if (!moved.current) {
+        const start = downPoint.current;
+        if (!start) return;
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < DRAG_THRESHOLD) return;
+        moved.current = true;
+        try {
+          containerRef.current?.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
-      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved.current = true;
+
+      // Track velocity for the fling. Smooth lightly to reject single-frame jitter.
+      const now = performance.now();
+      const mdt = now - lastMove.current.t;
+      if (mdt > 0) {
+        const ivx = (e.clientX - lastMove.current.x) / mdt;
+        const ivy = (e.clientY - lastMove.current.y) / mdt;
+        velocity.current = {
+          vx: ivx * 0.7 + velocity.current.vx * 0.3,
+          vy: ivy * 0.7 + velocity.current.vy * 0.3,
+        };
+        lastMove.current = { t: now, x: e.clientX, y: e.clientY };
+      }
+
       setT((p) => clamp({ ...p, x: p.x + dx, y: p.y + dy }));
       return;
     }
@@ -238,10 +331,23 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   };
 
   const endPointer = (e: React.PointerEvent) => {
+    const wasDrag = pointers.current.size === 1 && moved.current;
     pointers.current.delete(e.pointerId);
     if (pointers.current.size < 2) gesture.current = null;
+    if (pointers.current.size === 0) downPoint.current = null;
+
+    // Lifting the last finger after a real drag → coast, unless the finger had
+    // paused before release (stale velocity means the user meant to stop).
+    if (wasDrag && pointers.current.size === 0) {
+      if (performance.now() - lastMove.current.t < 60) startMomentum();
+    }
 
     if (pointers.current.size === 0 && !moved.current) {
+      // A tap. If it landed on a pin/booth, its own click handler runs (we
+      // never captured, so that still fires) — don't also double-tap-zoom.
+      const onTarget = (e.target as HTMLElement).closest('[data-nodrag]');
+      if (onTarget) return;
+
       const now = Date.now();
       if (now - lastTap.current < 300) {
         const { x, y } = localPoint(e);
@@ -271,6 +377,9 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [zoomAbout]);
+
+  // Stop any coasting animation if the component goes away.
+  useEffect(() => cancelMomentum, [cancelMomentum]);
 
   return (
     <div

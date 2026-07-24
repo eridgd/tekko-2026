@@ -145,11 +145,15 @@
 /* ---------- session card ---------- */
 
 .card__link {
+  flex: 1;
+  min-width: 0;
   display: block;
   color: inherit;
+  /* No left padding: the expand gutter provides the left inset. */
+  padding: 11px 6px 11px 0;
 }
 .card__link:focus-visible {
-  outline-offset: 4px;
+  outline-offset: -2px;
 }
 
 .card__day,
@@ -1179,6 +1183,21 @@
 }
 .mapinfo__body {
   padding-top: 8px;
+}
+
+/* Hide the browser's native search ✕ — we render our own clear button, and two
+   adjacent identical clears were confusing. */
+.search input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Links inside prose notices need more than colour to read as links (WCAG 1.4.1). */
+.notice a,
+.clash__pair a,
+.clash a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .mapctl {

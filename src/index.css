@@ -629,8 +629,8 @@ img {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  padding: 12px 46px 12px 14px;
   margin-bottom: 8px;
+  overflow: hidden;
   transition: border-color 0.15s, background 0.15s;
   contain: content;
 }
@@ -639,7 +639,53 @@ img {
 }
 .card--saved {
   border-left: 3px solid var(--saved);
-  padding-left: 12px;
+}
+
+.card__main {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Left gutter: expands the description inline. */
+.card__expand {
+  flex: 0 0 auto;
+  width: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  transition: color 0.15s, background 0.15s;
+}
+.card__expand:not(:disabled):hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.card__expand:disabled {
+  cursor: default;
+}
+.card__chev {
+  transition: transform 0.18s;
+}
+.card__chev--open {
+  transform: rotate(90deg);
+}
+
+.card__desc {
+  padding: 2px 14px 12px 34px;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.card__descmore {
+  display: block;
+  width: fit-content;
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+.card__dur {
+  font-weight: 700;
 }
 .card--past {
   opacity: 0.5;
@@ -690,9 +736,8 @@ img {
 }
 
 .card__save {
-  position: absolute;
-  top: 4px;
-  right: 4px;
+  flex: 0 0 auto;
+  align-self: flex-start;
   width: var(--tap);
   height: var(--tap);
   display: grid;

@@ -1,7 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { replaceRoute, type Route } from '../hooks/useRoute';
-import { getScheduleMemory, setScheduleMemory } from '../lib/scheduleMemory';
+import {
+  getScheduleMemory,
+  setScheduleMemory,
+  type ScheduleMemory,
+} from '../lib/scheduleMemory';
 import {
   applyFilters,
   activeFilterCount,
@@ -116,11 +120,23 @@ export function ScheduleView({ route }: { route: Route }) {
    * A fresh visit (empty sessionStorage) has no memory, so it falls through to
    * the current-con-day default in the `filters` memo above.
    */
-  const hashRef = useRef(route.raw);
-  hashRef.current = route.raw;
   const phase = useRef<'init' | 'live'>('init');
+  // Canonical serialization of what's actually on screen. Memory stores THIS
+  // rather than the raw hash so it compares equal to the ?back= links cards
+  // carry, even while the address bar still shows a bare "/schedule" (fresh
+  // visit) or lags the search-box debounce.
+  const canonicalHash = `/schedule?${filtersToParams(effective)}`;
+  const canonicalRef = useRef(canonicalHash);
+  canonicalRef.current = canonicalHash;
+  // Last hash this effect handled. StrictMode's dev-only effect replay keeps
+  // refs, so without this guard the replay would see phase === 'live' and fall
+  // into the "route changed" branch below — scrolling to the top and wiping
+  // the memory it had just restored (which made this bug invisible in dev).
+  const lastRaw = useRef<string | null>(null);
 
   useLayoutEffect(() => {
+    if (lastRaw.current === route.raw) return;
+    lastRaw.current = route.raw;
     const mem = getScheduleMemory();
     if (phase.current === 'init') {
       if (route.raw === '/schedule' && mem && mem.hash !== '/schedule') {
@@ -128,46 +144,64 @@ export function ScheduleView({ route }: { route: Route }) {
         return;
       }
       phase.current = 'live';
-      if (mem && mem.hash === route.raw && mem.scrollY > 0) {
-        // Re-apply for a short window in case layout settles (fonts, wrapping)
-        // after mount. Without content-visibility the page is full height right
-        // away, so this normally sticks on the first frame; the retries just
-        // guard against late reflow. Give up once it holds or the window ends.
-        const y = mem.scrollY;
-        let tries = 0;
-        const tick = () => {
-          window.scrollTo(0, y);
-          if (++tries < 20 && Math.abs(window.scrollY - y) > 2) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
+      if (mem && mem.hash === canonicalHash && mem.scrollY > 0) {
+        restoreScroll(mem); // agenda; the grid restores its own inner scroller
       }
       return;
     }
     // A day or filter change within the schedule: fresh result set, start at top.
     window.scrollTo(0, 0);
-    setScheduleMemory({ hash: route.raw, scrollY: 0 });
-  }, [route.raw]);
+    setScheduleMemory({ hash: canonicalHash, scrollY: 0 });
+  }, [route.raw]); // eslint-disable-line react-hooks/exhaustive-deps -- navigation only
 
   useEffect(() => {
     // Persist on scroll-IDLE, never per-frame: sessionStorage writes are
     // synchronous and doing one every animation frame is what made scrolling
     // jerky. A debounced write after scrolling settles is invisible to the user
-    // and still captures where they ended up.
+    // and still captures where they ended up. Capture phase because the grid
+    // view scrolls inside its own element and scroll events don't bubble.
     let idle = 0;
     const flush = () => {
-      if (phase.current === 'live') {
-        setScheduleMemory({ hash: hashRef.current, scrollY: window.scrollY });
+      if (phase.current !== 'live') return;
+      // By the time React runs the unmount cleanup below, the schedule DOM has
+      // already been swapped for the (much shorter) event detail and the
+      // browser has clamped window.scrollY to THAT page's height — capturing
+      // it then is what used to truncate deep positions to a few hundred px.
+      // Only capture while our DOM is still the one on screen; the idle flush
+      // has always run by the time a card gets tapped.
+      if (!headerRef.current?.isConnected) return;
+      const memory: ScheduleMemory = { hash: canonicalRef.current, scrollY: window.scrollY };
+      const grid = document.querySelector<HTMLElement>('.gridwrap .grid');
+      if (grid) {
+        // Grid view: the .grid element scrolls on both axes; the window stays put.
+        memory.gridLeft = grid.scrollLeft;
+        memory.gridTop = grid.scrollTop;
+      } else {
+        // Agenda: remember WHICH card sits at the top of the viewport, not just
+        // the pixel offset. content-visibility gives offscreen cards placeholder
+        // heights on a fresh mount, so a bare offset lands on different content;
+        // "this card, this many px from the top" survives the remount exactly.
+        const cards = document.querySelectorAll<HTMLElement>('.cardlist [data-sid]');
+        for (const el of cards) {
+          const rect = el.getBoundingClientRect();
+          if (rect.bottom > 0) {
+            memory.anchorId = el.dataset.sid;
+            memory.anchorTop = rect.top;
+            break;
+          }
+        }
       }
+      setScheduleMemory(memory);
     };
     const onScroll = () => {
       window.clearTimeout(idle);
       idle = window.setTimeout(flush, 160);
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     return () => {
-      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll, true);
       window.clearTimeout(idle);
-      flush(); // final capture before unmount (e.g. opening an event)
+      flush(); // final capture (no-ops once the view is already gone)
     };
   }, []);
 
@@ -288,6 +322,43 @@ export function ScheduleView({ route }: { route: Route }) {
       )}
     </>
   );
+}
+
+/**
+ * Put the agenda back where it was. Cards use `content-visibility: auto`, so on
+ * a fresh mount every offscreen card is placeholder-height: an absolute pixel
+ * offset doesn't map to the content it was saved against, and the layout keeps
+ * shifting for several frames while cards near the viewport get measured for
+ * real. So instead of trusting pixels, scroll the REMEMBERED CARD back to the
+ * exact viewport offset it had, re-applying each frame until it holds still
+ * for two consecutive frames (or the time budget runs out). Falls back to the
+ * raw offset only when the card is gone by the time we return (e.g. it slid
+ * into the past and "Upcoming only" now hides it).
+ */
+function restoreScroll(mem: ScheduleMemory): void {
+  const { scrollY, anchorId, anchorTop } = mem;
+  const deadline = performance.now() + 600;
+  let settled = 0;
+  const tick = () => {
+    const anchor =
+      anchorId !== undefined
+        ? document.querySelector(`.cardlist [data-sid="${CSS.escape(anchorId)}"]`)
+        : null;
+    if (anchor && anchorTop !== undefined) {
+      const delta = anchor.getBoundingClientRect().top - anchorTop;
+      if (Math.abs(delta) > 1) {
+        settled = 0;
+        window.scrollTo(0, window.scrollY + delta);
+      } else {
+        settled += 1;
+      }
+    } else {
+      window.scrollTo(0, scrollY);
+      settled = Math.abs(window.scrollY - scrollY) <= 2 ? settled + 1 : 0;
+    }
+    if (settled < 2 && performance.now() < deadline) requestAnimationFrame(tick);
+  };
+  tick(); // first application runs synchronously, before the mount paints
 }
 
 function Agenda({ sessions, filters }: { sessions: Session[]; filters: Filters }) {
