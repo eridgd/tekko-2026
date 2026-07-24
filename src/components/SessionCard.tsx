@@ -3,6 +3,7 @@ import type { Session } from '../types';
 import { useStore } from '../store';
 import { formatMinutes } from '../lib/time';
 import { isLive, isPast } from '../lib/filters';
+import { useSessionPreview } from './SessionPreview';
 import { IconAlert, IconPin, IconStar } from './Icons';
 
 interface Props {
@@ -36,6 +37,7 @@ export const SessionCard = memo(function SessionCard({
   const category = data.categoryById.get(session.cat);
 
   const href = `#/event/${session.id}${backTo ? `?back=${encodeURIComponent(backTo)}` : ''}`;
+  const { hoverProps, preview } = useSessionPreview(session);
 
   return (
     <div
@@ -47,7 +49,9 @@ export const SessionCard = memo(function SessionCard({
       ]
         .filter(Boolean)
         .join(' ')}
+      {...hoverProps}
     >
+      {preview}
       <a className="card__link" href={href}>
         <span className="card__time">
           {live && <span className="livedot" aria-hidden="true" />}

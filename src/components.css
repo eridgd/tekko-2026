@@ -363,23 +363,42 @@
   outline-offset: 2px;
 }
 
-/* ---------- schedule grid ---------- */
+/* ---------- schedule grid ----------
+   Bounded-height 2D scroller: the time ruler freezes at the top and the room
+   labels freeze at the left, so you never lose the time as you scroll down
+   through rooms (or the room as you scroll across time). */
+
+.gridwrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: calc(100dvh - var(--stick-h, 140px) - var(--tabbar-h) - var(--safe-b) - 12px);
+}
+.gridwrap__head {
+  flex: 0 0 auto;
+  padding: 0 12px;
+}
+@media (min-width: 900px) {
+  .gridwrap {
+    height: calc(100dvh - var(--stick-h, 140px) - 24px);
+  }
+}
 
 .grid {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 .grid__inner {
   position: relative;
-  padding-top: 30px;
 }
 
 .grid__ruler {
   position: sticky;
   top: 0;
   height: 30px;
-  z-index: 3;
+  z-index: 5;
   background: var(--bg);
 }
 .grid__tick {
@@ -391,6 +410,16 @@
   transform: translateX(-50%);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+.grid__corner {
+  position: sticky;
+  left: 0;
+  top: 0;
+  height: 30px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  z-index: 2;
+  display: block;
 }
 
 .grid__now {
@@ -411,7 +440,7 @@
 .grid__label {
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: 3;
   flex: 0 0 auto;
   background: var(--bg);
   border-right: 1px solid var(--border);
@@ -927,8 +956,11 @@
 
 .mapstage {
   position: relative;
-  flex: 1;
-  min-height: 240px;
+  flex: 1 1 0;
+  /* min-height:0 lets the stage shrink inside the fixed-height .mapview so the
+     room panel below it can never be pushed under the tab bar on a short
+     screen. The stage keeps a sane floor via the flex-basis growth. */
+  min-height: 0;
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -956,7 +988,10 @@
   -webkit-user-drag: none;
 }
 
-/* Pins scale inversely with zoom so they stay tappable but never swamp the map. */
+/* Pins counter-scale against the map zoom (--pin-inv, set by MapView) so they
+   stay a constant small size on screen instead of ballooning when you zoom in
+   to read a room. The dot is intentionally small so it marks a room without
+   obscuring it; the tap target below stays generous. */
 .mappin {
   position: absolute;
   width: 0;
@@ -966,68 +1001,116 @@
   z-index: 2;
 }
 .mappin__dot {
-  width: 15px;
-  height: 15px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--red);
-  border: 2.5px solid #fff;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-  transition: transform 0.16s;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  transform: scale(var(--pin-inv, 1));
+  transform-origin: center;
+  transition: background 0.16s;
 }
 .mappin::before {
-  /* Invisible 44px hit area over a small visual dot. */
+  /* Invisible hit area, kept comfortably tappable at any zoom. */
   content: '';
   position: absolute;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
+}
+.mappin--active {
+  z-index: 3;
 }
 .mappin--active .mappin__dot {
   background: var(--lime);
-  transform: scale(1.6);
-  animation: pinpulse 1.6s ease-out infinite;
+  transform: scale(calc(var(--pin-inv, 1) * 1.5));
+  animation: pinpulse 1.7s ease-out infinite;
 }
 @keyframes pinpulse {
-  0% { box-shadow: 0 0 0 0 rgba(141, 198, 63, 0.65); }
-  70% { box-shadow: 0 0 0 16px rgba(141, 198, 63, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(141, 198, 63, 0.6); }
+  70% { box-shadow: 0 0 0 11px rgba(141, 198, 63, 0); }
   100% { box-shadow: 0 0 0 0 rgba(141, 198, 63, 0); }
 }
 
-.booth {
-  position: absolute;
-  border: 0.5px solid rgba(60, 60, 60, 0.55);
-  display: grid;
-  place-items: center;
+/* ---------- desktop hover preview ---------- */
+
+.preview {
+  position: fixed;
+  z-index: 80;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  padding: 13px 15px;
+  animation: previewin 0.12s ease;
+  pointer-events: auto;
+}
+@keyframes previewin {
+  from { opacity: 0; transform: translateY(3px); }
+}
+.preview__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.preview__title {
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  margin-bottom: 6px;
+}
+.preview__meta {
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.preview__loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.preview__desc {
+  margin-top: 9px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  padding: 0;
-  transition: opacity 0.15s;
 }
-.booth__label {
-  font-size: 5px;
+.preview__guests {
+  margin-top: 9px;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.preview__key {
   font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1;
-  pointer-events: none;
+  color: var(--text);
 }
-.booth--match {
-  outline: 2px solid var(--red);
-  outline-offset: 1px;
-  z-index: 3;
-}
-.booth--dim {
-  opacity: 0.28;
-}
-.booth--selected {
-  outline: 3px solid var(--lime);
-  outline-offset: 1px;
-  z-index: 4;
+.preview__hint {
+  margin-top: 11px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
-.mapsection {
-  position: absolute;
-  border: 1.5px dashed;
-  opacity: 0.65;
-  pointer-events: none;
+.mapcaption {
+  white-space: pre-line;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.mapcaption__note {
+  margin-top: 10px;
+  font-size: 0.8125rem;
 }
 
 .mapctl {

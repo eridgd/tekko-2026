@@ -11,7 +11,7 @@ actually walking the convention floor.
 - **Now** — what's running this minute and what starts soon, with a nudge toward your next saved event
 - **Schedule** — all 943 events, as an agenda or a classic con grid; filter by category, room and audience; full-text search
 - **My Schedule** — save events, get **conflict warnings** for overlaps, export to `.ics`
-- **Maps** — the convention floor map with tappable room pins, plus interactive booth maps for the Exhibit Hall and Artist Alley
+- **Maps** — the convention floor map with tappable room pins, plus pan/zoom images of the Exhibit Hall and Artist Alley (Tekko only publishes booth numbers, not vendor names, so those two are the printed map, not an overlay)
 - **Guests** — the 39 industry guests and every session they're in
 
 Tap the location on any event to jump to its exact spot on the floor map, then jump straight back.

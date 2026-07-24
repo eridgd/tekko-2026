@@ -7,7 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png', 'icons/*.svg'],
+      // Icons live in public/ and are already swept up by globPatterns below;
+      // listing them again here just produced duplicate precache entries.
       workbox: {
         // Precache the entire app, not just the shell: the schedule JSON, all
         // three map images and every guest photo. Con wifi is unusable, so

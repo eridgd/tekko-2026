@@ -72,7 +72,7 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
   return (
     <div className="grid" ref={scrollRef}>
       <div className="grid__inner" style={{ width: width + LABEL_W }}>
-        <div className="grid__ruler" style={{ paddingLeft: LABEL_W }}>
+        <div className="grid__ruler">
           {Array.from({ length: hours + 1 }, (_, i) => (
             <span
               key={i}
@@ -82,6 +82,8 @@ export function ScheduleGrid({ sessions, filters }: { sessions: Session[]; filte
               {formatMinutes(startMin + i * 60)}
             </span>
           ))}
+          {/* Opaque corner where the frozen ruler meets the frozen label column. */}
+          <span className="grid__corner" style={{ width: LABEL_W }} aria-hidden="true" />
         </div>
 
         {nowOffset != null && (

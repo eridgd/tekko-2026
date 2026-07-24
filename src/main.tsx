@@ -7,6 +7,10 @@ import type { AppData } from './types';
 import './index.css';
 import './components.css';
 
+// We manage scroll position ourselves (schedule remembers where you were, detail
+// views start at the top). Let the browser stop fighting us over it.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
 function Root() {
   const [data, setData] = useState<AppData | null>(null);
   const [error, setError] = useState<Error | null>(null);

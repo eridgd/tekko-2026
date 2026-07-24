@@ -8,3 +8,6 @@ dev-dist/
 # Pin-audit renders — regenerate with `node scripts/dev/pin-audit.mjs --bands`
 data/pin-audit.png
 data/pin-band*.png
+
+# TypeScript incremental build cache
+tsconfig.tsbuildinfo

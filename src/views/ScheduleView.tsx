@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { replaceRoute, type Route } from '../hooks/useRoute';
+import { getScheduleMemory, setScheduleMemory } from '../lib/scheduleMemory';
 import {
   applyFilters,
   activeFilterCount,
@@ -35,22 +36,125 @@ export function ScheduleView({ route }: { route: Route }) {
     return parsed;
   }, [route.params, days, clock.day, prefs.hidePast]);
 
+  /**
+   * The search box is local state, synced to the URL on a debounce.
+   *
+   * Driving a controlled input straight from the URL means every keystroke does
+   * a full hash round trip before the character appears — which drops
+   * characters under a fast typist or a mobile IME. Filtering still runs
+   * immediately on each keystroke (943 sessions is cheap); only the URL waits.
+   */
+  const [queryDraft, setQueryDraft] = useState(filters.query);
+  const lastPushedQuery = useRef(filters.query);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  // Back button, or a link carrying ?q=, should refill the box.
+  useEffect(() => {
+    if (filters.query !== lastPushedQuery.current) {
+      lastPushedQuery.current = filters.query;
+      setQueryDraft(filters.query);
+    }
+  }, [filters.query]);
+
+  useEffect(() => {
+    if (queryDraft === lastPushedQuery.current) return;
+    const id = setTimeout(() => {
+      lastPushedQuery.current = queryDraft;
+      replaceRoute(
+        `/schedule?${filtersToParams({ ...filtersRef.current, query: queryDraft })}`
+      );
+    }, 300);
+    return () => clearTimeout(id);
+  }, [queryDraft]);
+
+  const effective = useMemo<Filters>(
+    () => ({ ...filters, query: queryDraft }),
+    [filters, queryDraft]
+  );
+
   const setFilters = (patch: Partial<Filters>) => {
-    const next = { ...filters, ...patch };
+    if (patch.query !== undefined) {
+      setQueryDraft(patch.query);
+      if (Object.keys(patch).length === 1) return;
+    }
+    // Base off `effective` so changing a filter mid-typing keeps what's typed.
+    const next = { ...effective, ...patch };
+    lastPushedQuery.current = next.query;
     if (patch.hidePast !== undefined) setPrefs({ hidePast: patch.hidePast });
     replaceRoute(`/schedule?${filtersToParams(next)}`);
   };
 
   const visible = useMemo(
     () =>
-      applyFilters(data.schedule.sessions, filters, {
+      applyFilters(data.schedule.sessions, effective, {
         data,
         savedIds,
         nowDay: clock.day,
         nowMinutes: clock.minutes,
       }),
-    [data, filters, savedIds, clock.day, clock.minutes]
+    [data, effective, savedIds, clock.day, clock.minutes]
   );
+
+  /**
+   * Restore where you left off.
+   *
+   *  - Tapping the Schedule tab (a bare "/schedule") returns you to the day and
+   *    filters you last had, rather than snapping back to today.
+   *  - Backing out of an event detail lands at the scroll position you left.
+   *
+   * A fresh visit (empty sessionStorage) has no memory, so it falls through to
+   * the current-con-day default in the `filters` memo above.
+   */
+  const hashRef = useRef(route.raw);
+  hashRef.current = route.raw;
+  const phase = useRef<'init' | 'live'>('init');
+
+  useLayoutEffect(() => {
+    const mem = getScheduleMemory();
+    if (phase.current === 'init') {
+      if (route.raw === '/schedule' && mem && mem.hash !== '/schedule') {
+        replaceRoute(mem.hash); // re-renders; this effect runs again on the restored hash
+        return;
+      }
+      phase.current = 'live';
+      if (mem && mem.hash === route.raw && mem.scrollY > 0) {
+        // content-visibility means real card heights settle over a few frames;
+        // re-apply until the target sticks (or we give up).
+        const y = mem.scrollY;
+        let tries = 0;
+        const tick = () => {
+          window.scrollTo(0, y);
+          if (++tries < 6 && Math.abs(window.scrollY - y) > 2) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }
+      return;
+    }
+    // A day or filter change within the schedule: fresh result set, start at top.
+    window.scrollTo(0, 0);
+    setScheduleMemory({ hash: route.raw, scrollY: 0 });
+  }, [route.raw]);
+
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (phase.current !== 'live' || raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setScheduleMemory({ hash: hashRef.current, scrollY: window.scrollY });
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+      // Capture the final position before unmount (e.g. opening an event).
+      if (phase.current === 'live') {
+        setScheduleMemory({ hash: hashRef.current, scrollY: window.scrollY });
+      }
+    };
+  }, []);
 
   // Keep sticky slot headers just below the (variable-height) app header.
   useEffect(() => {
@@ -64,8 +168,8 @@ export function ScheduleView({ route }: { route: Route }) {
     return () => ro.disconnect();
   }, []);
 
-  const activeCount = activeFilterCount(filters);
-  const day = days.find((d) => d.key === filters.day);
+  const activeCount = activeFilterCount(effective);
+  const day = days.find((d) => d.key === effective.day);
 
   return (
     <>
@@ -75,13 +179,13 @@ export function ScheduleView({ route }: { route: Route }) {
             <IconSearch />
             <input
               type="search"
-              value={filters.query}
+              value={queryDraft}
               onChange={(e) => setFilters({ query: e.target.value })}
-              placeholder="Search 943 events…"
+              placeholder={`Search ${data.schedule.sessions.length} events…`}
               aria-label="Search events"
               enterKeyHint="search"
             />
-            {filters.query && (
+            {queryDraft && (
               <button
                 className="search__clear"
                 onClick={() => setFilters({ query: '' })}
@@ -115,7 +219,7 @@ export function ScheduleView({ route }: { route: Route }) {
             <button
               key={d.key}
               className={`daytab${d.key === clock.day ? ' daytab--today' : ''}`}
-              aria-pressed={d.key === filters.day}
+              aria-pressed={d.key === effective.day}
               onClick={() => setFilters({ day: d.key })}
             >
               <strong>{d.short}</strong>
@@ -125,20 +229,22 @@ export function ScheduleView({ route }: { route: Route }) {
         </div>
       </StickyHeader>
 
-      <div className={prefs.view === 'grid' ? 'page page--flush' : 'page'}>
-        <ActiveFilters filters={filters} setFilters={setFilters} count={visible.length} />
+      <div className={prefs.view === 'grid' ? 'gridwrap' : 'page'}>
+        <div className={prefs.view === 'grid' ? 'gridwrap__head' : undefined}>
+          <ActiveFilters filters={effective} setFilters={setFilters} count={visible.length} />
+        </div>
 
         {visible.length === 0 ? (
           <EmptyState
             icon="🔍"
             title="Nothing matches"
             body={
-              activeCount || filters.query
+              activeCount || effective.query
                 ? 'Try clearing a filter or searching for something else.'
                 : `No events are listed for ${day?.weekday ?? 'this day'}.`
             }
             action={
-              activeCount || filters.query
+              activeCount || effective.query
                 ? {
                     label: 'Clear all filters',
                     onClick: () =>
@@ -148,15 +254,15 @@ export function ScheduleView({ route }: { route: Route }) {
             }
           />
         ) : prefs.view === 'grid' ? (
-          <ScheduleGrid sessions={visible} filters={filters} />
+          <ScheduleGrid sessions={visible} filters={effective} />
         ) : (
-          <Agenda sessions={visible} filters={filters} />
+          <Agenda sessions={visible} filters={effective} />
         )}
       </div>
 
       {filterOpen && (
         <FilterSheet
-          filters={filters}
+          filters={effective}
           setFilters={setFilters}
           categories={categories}
           flags={flags}
