@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { loadAppData } from './data/load';
 import { StoreProvider } from './store';
@@ -18,6 +18,43 @@ function Root() {
 
   useEffect(() => {
     loadAppData().then(setData, setError);
+  }, []);
+
+  // Keep an open app current: re-pull the schedule every 30 min (matching the
+  // server-side auto-refresh), and whenever you return to the tab after a
+  // while. Data is fetched network-first, so these hit the server when online
+  // and no-op offline. Only swaps state when the snapshot actually changed
+  // (fetchedAt differs), so it's silent and cheap when nothing's new. Saved
+  // events live in localStorage keyed by id, so they're untouched.
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  useEffect(() => {
+    let cancelled = false;
+    let lastAt = Date.now();
+    const refetch = () => {
+      loadAppData()
+        .then((fresh) => {
+          if (cancelled) return;
+          lastAt = Date.now();
+          if (dataRef.current?.schedule.fetchedAt !== fresh.schedule.fetchedAt) {
+            setData(fresh);
+            setError(null);
+          }
+        })
+        .catch(() => {
+          /* offline or a blip — keep what we have, try again next tick */
+        });
+    };
+    const id = window.setInterval(refetch, 30 * 60 * 1000);
+    const onVisible = () => {
+      if (!document.hidden && Date.now() - lastAt > 15 * 60 * 1000) refetch();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   let content;
