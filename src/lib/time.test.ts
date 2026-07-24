@@ -8,21 +8,17 @@ describe('conClock', () => {
     expect(c.minutes).toBe(14 * 60 + 30);
   });
 
-  it('rolls after-midnight times back to the previous con day', () => {
-    // 1:15am Friday is "Thursday night" to everyone at the con.
+  it('uses the real calendar day after midnight (no rollover on the live clock)', () => {
+    // 1:15am Friday reads as Friday 1:15 AM — the con-day rollover is a
+    // build-time grouping concern, not a clock concern.
     const c = conClock(new Date('2026-07-24T01:15:00-04:00'));
-    expect(c.day).toBe('2026-07-23');
-    expect(c.minutes).toBe(24 * 60 + 75);
+    expect(c.day).toBe('2026-07-24');
+    expect(c.minutes).toBe(75);
   });
 
-  it('treats 4am as the start of a new con day', () => {
-    expect(conClock(new Date('2026-07-25T03:59:00-04:00')).day).toBe('2026-07-24');
+  it('reports the real day through the early-morning hours', () => {
+    expect(conClock(new Date('2026-07-25T03:59:00-04:00')).day).toBe('2026-07-25');
     expect(conClock(new Date('2026-07-25T04:00:00-04:00')).day).toBe('2026-07-25');
-  });
-
-  it('rolls back across a month boundary', () => {
-    const c = conClock(new Date('2026-08-01T02:00:00-04:00'));
-    expect(c.day).toBe('2026-07-31');
   });
 
   it('is independent of the device timezone', () => {
@@ -38,10 +34,10 @@ describe('conClock', () => {
     expect(a.minutes).toBe(14 * 60);
   });
 
-  it('handles midnight exactly', () => {
+  it('reports midnight as the new calendar day at 0 minutes', () => {
     const c = conClock(new Date('2026-07-25T00:00:00-04:00'));
-    expect(c.day).toBe('2026-07-24');
-    expect(c.minutes).toBe(24 * 60);
+    expect(c.day).toBe('2026-07-25');
+    expect(c.minutes).toBe(0);
   });
 });
 

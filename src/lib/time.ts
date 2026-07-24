@@ -1,5 +1,3 @@
-import { CON_DAY_ROLLOVER_HOUR } from './constants';
-
 /**
  * Everything time-related is anchored to America/New_York, because that's where
  * the con is. The device might be in any timezone (or have the wrong clock), so
@@ -40,16 +38,16 @@ export function conClock(at: Date = new Date()): ConClock {
   const hour = Number(get('hour')) % 24;
   const minute = Number(get('minute'));
 
-  let day = `${year}-${month}-${dayNum}`;
-  let minutes = hour * 60 + minute;
-
-  if (hour < CON_DAY_ROLLOVER_HOUR) {
-    const prev = new Date(Date.UTC(Number(year), Number(month) - 1, Number(dayNum) - 1));
-    day = prev.toISOString().slice(0, 10);
-    minutes += 24 * 60;
-  }
-
-  return { day, minutes, epoch: Math.floor(at.getTime() / 1000) };
+  // The live clock uses the REAL calendar day and time. The 4am con-day
+  // rollover applies only to build-time session *grouping* (so a 1am screening
+  // lists under the previous night) — applying it to the clock made "today" and
+  // the header read as the previous day between midnight and 4am (e.g. showing
+  // "Thursday · 3:13 AM" at 3:13 AM on Friday), which is just wrong.
+  return {
+    day: `${year}-${month}-${dayNum}`,
+    minutes: hour * 60 + minute,
+    epoch: Math.floor(at.getTime() / 1000),
+  };
 }
 
 /** "2026-07-25" -> "Saturday". Pure string math, no Date parsing pitfalls. */

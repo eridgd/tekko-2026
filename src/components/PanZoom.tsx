@@ -108,10 +108,10 @@ export const PanZoom = forwardRef<PanZoomHandle, Props>(function PanZoom(
   }, []);
 
   const startMomentum = useCallback(() => {
-    const FRICTION = 0.93; // per 60fps frame
-    const MIN_SPEED = 0.02; // px/ms — below this, stop
+    const FRICTION = 0.95; // per 60fps frame — higher = longer, more visible coast
+    const MIN_SPEED = 0.015; // px/ms — below this, stop
     let { vx, vy } = velocity.current;
-    if (Math.hypot(vx, vy) < 0.05) return; // not a real fling
+    if (Math.hypot(vx, vy) < 0.04) return; // not a real fling
     let last = 0;
     const step = (now: number) => {
       if (!last) last = now;
