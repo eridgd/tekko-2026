@@ -40,27 +40,36 @@ if ! npm run fetch >>"$LOG" 2>&1; then
   exit 0
 fi
 
-# Did the SCHEDULE CONTENT actually change? data/raw/meta.json always changes
-# (it records the fetch time), so it's excluded from the check.
-CONTENT_FILES=(data/raw/sessions.json data/raw/map-21054.json data/raw/map-22364.json data/raw/map-22626.json)
-if git diff --quiet -- "${CONTENT_FILES[@]}"; then
-  log "no schedule changes"
-  git checkout -- data/raw/meta.json 2>/dev/null || true  # drop timestamp-only churn
-  exit 0
-fi
-
-log "SCHEDULE CHANGED — rebuilding and validating"
+# Session count of what's currently published (before rebuild), for the message.
 OLD=$(node -e "try{process.stdout.write(String(require('./public/data/schedule.json').sessions.length))}catch{process.stdout.write('?')}" 2>/dev/null)
 
 # Rebuild + validate. If validation fails, the new upstream data broke an
 # invariant (new unmapped room, tag vocabulary drift, etc.) — do NOT publish;
-# leave it for a human.
+# leave it for a human. (Build is deterministic, so identical upstream content
+# produces identical output regardless of how the API ordered its JSON.)
 if ! npm run data >>"$LOG" 2>&1; then
   log "VALIDATION FAILED — not pushing. Needs manual attention (see log above)."
   notify "Refresh validation FAILED — manual fix needed"
   git checkout -- data/ public/data/ 2>/dev/null || true
   exit 1
 fi
+
+# Compare the built app CONTENT (ignoring timestamps) against what's committed.
+# Diffing the raw file would false-trigger when the API just reorders its JSON;
+# this only fires on changes users would actually see.
+NEWSIG=$(node scripts/content-sig.mjs public/data 2>/dev/null)
+OLDDIR=$(mktemp -d)
+for f in schedule maps guests; do git show "HEAD:public/data/$f.json" >"$OLDDIR/$f.json" 2>/dev/null; done
+OLDSIG=$(node scripts/content-sig.mjs "$OLDDIR" 2>/dev/null)
+rm -rf "$OLDDIR"
+
+if [ -n "$NEWSIG" ] && [ "$NEWSIG" = "$OLDSIG" ]; then
+  log "no schedule changes"
+  git checkout -- data/ public/data/ public/img/ 2>/dev/null || true
+  exit 0
+fi
+
+log "SCHEDULE CHANGED — validated, publishing"
 
 # Refresh images too (new guest photos, etc.). Best-effort — data is what matters.
 npm run images >>"$LOG" 2>&1 || log "images step failed (continuing anyway)"

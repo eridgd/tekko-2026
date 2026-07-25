@@ -130,7 +130,12 @@ function buildSessions(raw, warn) {
     });
   }
 
-  sessions.sort((a, b) => a.start - b.start || a.track.localeCompare(b.track));
+  // Final tiebreak on id so the output order is fully deterministic regardless
+  // of how the upstream API happened to order its JSON this fetch — otherwise a
+  // pure reordering upstream would churn the built file for no real change.
+  sessions.sort(
+    (a, b) => a.start - b.start || a.track.localeCompare(b.track) || a.id.localeCompare(b.id)
+  );
   return sessions;
 }
 
@@ -240,6 +245,7 @@ async function buildMaps(warn) {
           offMap: offMap || undefined,
         };
       });
+      map.booths.sort((a, b) => a.id - b.id); // deterministic regardless of upstream order
       map.sections = (raw.sections ?? []).map((s) => ({
         id: Number(s.id),
         title: decodeEntities(s.title ?? '').trim(),
